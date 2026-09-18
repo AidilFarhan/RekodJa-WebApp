@@ -7,6 +7,7 @@ export async function signIn() {
   const client = await supabase();
   const { data, error } = await client.auth.signInWithOAuth({ provider: 'google', options: {
     scopes: 'openid email profile', redirectTo: `${configuration().appUrl}/auth/callback`,
+    queryParams: { prompt: 'select_account' },
   } });
   if (error || !data.url) redirect('/sign-in?error=oauth');
   redirect(data.url);

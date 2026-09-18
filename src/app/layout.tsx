@@ -1,6 +1,6 @@
 import './globals.css';
 import './responsive.css';
-export const metadata = { title: 'Job Tracker Pro', description: 'Your Job Tracker Pro account' };
+export const metadata = { title: 'Job Tracker', description: 'Your Job Tracker account' };
 export default function Layout({ children }: { children: React.ReactNode }) {
-  return <html lang="en"><body><header><a href="/">Job Tracker <strong>Pro</strong></a><nav aria-label="Primary"><a href="/dashboard">Dashboard</a><a href="/tracker-setup">Tracker</a><a href="/account">Account</a></nav></header><main>{children}</main></body></html>;
+  return <html lang="en"><body><header><a href="/" className="header-brand"><span className="header-mark">j</span>Job Tracker</a></header><main>{children}</main></body></html>;
 }

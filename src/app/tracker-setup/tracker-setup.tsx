@@ -142,7 +142,7 @@ export default function TrackerSetup({ config, connections }: { config: Config; 
       const importResult = await importResponse.json();
       if (!importResponse.ok) throw new Error(importResult.error || 'Could not import spreadsheet.');
       setMessage(importSummary(importResult));
-      window.setTimeout(() => window.location.assign('/dashboard'), importResult.skipped > 0 ? 4000 : 900);
+      window.setTimeout(() => window.location.assign('/dashboard/overview'), importResult.skipped > 0 ? 4000 : 900);
     } catch (error) {
       setBusy(false);
       setMessage(error instanceof Error ? error.message : 'Could not import spreadsheet.');
@@ -157,7 +157,7 @@ export default function TrackerSetup({ config, connections }: { config: Config; 
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Import failed.');
       setMessage(importSummary(result));
-      window.setTimeout(() => window.location.assign('/dashboard'), result.skipped > 0 ? 4000 : 900);
+      window.setTimeout(() => window.location.assign('/dashboard/overview'), result.skipped > 0 ? 4000 : 900);
     } catch (error) { setMessage(error instanceof Error ? error.message : 'Import failed.'); }
     finally { setBusy(false); }
   }
