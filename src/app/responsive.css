@@ -1,0 +1,21 @@
+/* Let the workspace use the available screen width. */
+main { width: 100%; max-width: none; margin: 32px auto; padding: 0 clamp(16px, 3vw, 48px); min-width: 0; }
+main > section { min-width: 0; }
+.dashboard-heading > div, .metric-card, .filters > label { min-width: 0; }
+.table-wrap { max-width: 100%; }
+.table-wrap table { table-layout: fixed; min-width: 720px; }
+.table-wrap th, .table-wrap td { white-space: normal; overflow-wrap: anywhere; vertical-align: top; }
+.table-wrap th:nth-child(1) { width: 23%; }
+.table-wrap th:nth-child(2) { width: 31%; }
+.table-wrap th:nth-child(3) { width: 13%; }
+.table-wrap th:nth-child(4) { width: 14%; }
+.table-wrap th:nth-child(5) { width: 12%; }
+.table-wrap th:nth-child(6) { width: 7%; }
+@media (max-width: 720px) {
+  main { margin: 20px auto; padding: 0 16px; }
+  main > section { padding: 20px 16px; }
+  header { flex-wrap: wrap; }
+  .filters { flex-wrap: wrap; }
+  .filters label { flex: 1 1 130px; }
+  .filters select { min-width: 0; }
+}
