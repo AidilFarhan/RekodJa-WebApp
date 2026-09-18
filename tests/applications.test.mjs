@@ -145,3 +145,15 @@ test('another user sees zero import issues and cannot delete them', async () => 
   assert.equal((await db.query('select * from public.import_issues')).rows.length, 0);
   await assert.rejects(db.query(`insert into public.import_issues(sheet_connection_id,message) values($1,'Spoofed issue')`, [connection]), /foreign key|row-level security/);
 }));
+
+test('owner can delete their own rows in all tables', async () => asUser(alice, async () => {
+  assert.equal((await db.query(`delete from public.application_events where application_id=$1 returning id`, [application])).rows.length, 1);
+  assert.equal((await db.query(`delete from public.applications where id=$1 returning id`, [application])).rows.length, 1);
+  assert.equal((await db.query(`delete from public.sheet_connections where id=$1 returning id`, [connection])).rows.length, 1);
+}));
+
+test('another user cannot delete owner rows', async () => asUser(bob, async () => {
+  assert.equal((await db.query(`delete from public.application_events where application_id=$1 returning id`, [application])).rows.length, 0);
+  assert.equal((await db.query(`delete from public.applications where id=$1 returning id`, [application])).rows.length, 0);
+  assert.equal((await db.query(`delete from public.sheet_connections where id=$1 returning id`, [connection])).rows.length, 0);
+}));

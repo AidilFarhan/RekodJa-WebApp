@@ -69,6 +69,7 @@ export default function TrackerSetup({ config, connections }: { config: Config; 
   };
   useEffect(() => clearPickerProbe, []);
   const [busy, setBusy] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [message, setMessage] = useState('');
   const [picked, setPicked] = useState<{ id: string; name: string; tabs: string[] } | null>(null);
   const [sheetName, setSheetName] = useState('');
@@ -138,12 +139,14 @@ export default function TrackerSetup({ config, connections }: { config: Config; 
     setBusy(false);
     if (!response.ok) return setMessage(result.error || 'Could not save spreadsheet connection.');
     try {
+      setImporting(true);
       const importResponse = await fetch(`/api/sheet-connections/${result.id}/import`, { method: 'POST', headers: { Authorization: `Bearer ${token.current}` } });
       const importResult = await importResponse.json();
       if (!importResponse.ok) throw new Error(importResult.error || 'Could not import spreadsheet.');
       setMessage(importSummary(importResult));
       window.setTimeout(() => window.location.assign('/dashboard/overview'), importResult.skipped > 0 ? 4000 : 900);
     } catch (error) {
+      setImporting(false);
       setBusy(false);
       setMessage(error instanceof Error ? error.message : 'Could not import spreadsheet.');
     }
@@ -153,12 +156,13 @@ export default function TrackerSetup({ config, connections }: { config: Config; 
     setBusy(true); setMessage('');
     try {
       token.current = await authorize();
+      setImporting(true);
       const response = await fetch(`/api/sheet-connections/${connectionId}/import`, { method: 'POST', headers: { Authorization: `Bearer ${token.current}` } });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Import failed.');
       setMessage(importSummary(result));
       window.setTimeout(() => window.location.assign('/dashboard/overview'), result.skipped > 0 ? 4000 : 900);
-    } catch (error) { setMessage(error instanceof Error ? error.message : 'Import failed.'); }
+    } catch (error) { setImporting(false); setMessage(error instanceof Error ? error.message : 'Import failed.'); }
     finally { setBusy(false); }
   }
 
@@ -172,5 +176,6 @@ export default function TrackerSetup({ config, connections }: { config: Config; 
     </div>}
     {connections.length > 0 && <div className="connections"><h2>Connected spreadsheets</h2>{connections.map((connection) => <div className="connection-row" key={connection.id}><span><strong>{connection.spreadsheet_name}</strong><small>{connection.sheet_name}</small></span><button disabled={busy} onClick={() => importConnection(connection.id)}>Import from Sheet</button></div>)}</div>}
     {message && <p className="message" role="status">{message}</p>}
+    {importing && <div className="importing-overlay" role="status" aria-live="polite"><div className="importing-dialog"><img className="cat-img" src="/cat-run.gif" alt="Running cat" /><p>Importing your spreadsheet…</p><div className="importing-track" aria-hidden="true"><span/><span/><span/></div></div></div>}
   </div>;
 }

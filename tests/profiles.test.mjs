@@ -17,6 +17,9 @@ before(async () => {
     grant usage on schema public, auth to authenticated, anon;
     grant execute on function auth.uid() to authenticated, anon;`);
   await db.exec(await readFile(new URL('../supabase/migrations/202609170001_profiles.sql', import.meta.url), 'utf8'));
+  await db.exec(await readFile(new URL('../supabase/migrations/202609180005_profiles_name_confirmed.sql', import.meta.url), 'utf8'));
+  await db.exec(await readFile(new URL('../supabase/migrations/202609180006_empty_name_trigger.sql', import.meta.url), 'utf8'));
+  await db.exec(await readFile(new URL('../supabase/migrations/202609180007_profiles_insert_grant.sql', import.meta.url), 'utf8'));
   await db.query(`insert into auth.users values ($1, '{"full_name":"Alice"}'), ($2, '{"full_name":"Bob"}')`, [alice, bob]);
 });
 after(() => db.close());
@@ -32,9 +35,9 @@ test('RLS is enabled on profiles', async () => {
   const { rows } = await db.query(`select relrowsecurity from pg_class where oid = 'public.profiles'::regclass`);
   assert.equal(rows[0].relrowsecurity, true);
 });
-test('auth insert creates exactly one profile with the captured name', async () => {
+test('auth insert creates exactly one profile with an empty name', async () => {
   const { rows } = await db.query('select display_name from public.profiles where id = $1', [alice]);
-  assert.deepEqual(rows, [{ display_name: 'Alice' }]);
+  assert.deepEqual(rows, [{ display_name: '' }]);
 });
 test('Alice sees only herself even without a client-side filter', async () => asUser(alice, async () => {
   const { rows } = await db.query('select id from public.profiles');
@@ -49,11 +52,21 @@ test('Bob sees only his own profile', async () => asUser(bob, async () => {
 test('owner can edit display name', async () => asUser(alice, async () => {
   assert.deepEqual((await db.query(`update public.profiles set display_name = 'Updated' where id = $1 returning display_name`, [alice])).rows, [{ display_name: 'Updated' }]);
 }));
+test('name_confirmed defaults to false and owner can confirm it', async () => asUser(alice, async () => {
+  assert.deepEqual((await db.query('select name_confirmed from public.profiles where id = $1', [alice])).rows, [{ name_confirmed: false }]);
+  assert.deepEqual((await db.query(`update public.profiles set name_confirmed = true where id = $1 returning name_confirmed`, [alice])).rows, [{ name_confirmed: true }]);
+}));
+
+test('owner can upsert a profile with name_confirmed after deletion', async () => asUser(alice, async () => {
+  await db.query('delete from public.profiles where id = $1', [alice]);
+  const { rows } = await db.query(`insert into public.profiles(id, display_name, name_confirmed) values($1, 'Nayo', true) on conflict (id) do update set display_name = excluded.display_name, name_confirmed = excluded.name_confirmed returning display_name, name_confirmed`, [alice]);
+  assert.deepEqual(rows, [{ display_name: 'Nayo', name_confirmed: true }]);
+}));
 test('Alice cannot update Bob', async () => asUser(alice, async () => {
   assert.equal((await db.query(`update public.profiles set display_name = 'Hacked' where id = $1 returning id`, [bob])).rows.length, 0);
 }));
 test('user cannot reassign profile ownership', async () => asUser(alice, async () => {
-  await assert.rejects(db.query('update public.profiles set id = $1 where id = $2', [bob, alice]), /permission denied/);
+  await assert.rejects(db.query('update public.profiles set id = $1 where id = $2', [bob, alice]), /permission denied|row-level security/);
 }));
 test('user cannot insert a profile for another identity', async () => asUser(alice, async () => {
   await assert.rejects(db.query(`insert into public.profiles(id) values ('33333333-3333-4333-8333-333333333333')`), /row-level security/);

@@ -2,10 +2,12 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { signOut } from '@/app/actions';
+import DeleteAccountButton from './delete-account-button';
+import ErrorPopup from './error-popup';
 
 export const dynamic = 'force-dynamic';
 
-export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ saved?: string }> }) {
+export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ saved?: string; error?: string }> }) {
   const params = await searchParams;
   const client = await supabase();
   const { data: { user }, error: authError } = await client.auth.getUser();
@@ -20,6 +22,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
     <h1>Settings</h1>
     <p className="page-subtitle">Manage your workspace connections and plan.</p>
     {params.saved && <p className="feedback" role="status">Your name has been saved.</p>}
+    {params.error && params.error !== 'save' && <ErrorPopup message={decodeURIComponent(params.error)} />}
     <div className="settings-sections">
       <section>
         <div><h2>Account</h2><p>{name}</p><p className="muted">{user.email} · Google Account</p></div>
@@ -50,6 +53,10 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       <section>
         <div><h2>Session</h2><p className="muted">Sign out of this device.</p></div>
         <form action={signOut}><button className="button">Sign out</button></form>
+      </section>
+      <section>
+        <div><h2>Delete account</h2><p className="muted">Remove your account and all tracked data. This cannot be undone.</p></div>
+        <DeleteAccountButton />
       </section>
     </div>
   </section>;

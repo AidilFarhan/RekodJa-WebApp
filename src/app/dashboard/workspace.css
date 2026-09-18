@@ -134,6 +134,8 @@ body:has(.workspace)>main{margin:0;padding:0;max-width:none}
 .button:hover{background:#f6f8fc;text-decoration:none}
 .button.primary{background:#14213d;border-color:#14213d;color:#fff}
 .button.primary:hover{background:#223555}
+.button.danger{color:#a53535;border-color:#e2b3b3}
+.button.danger:hover{background:#fbeeee}
 .button-small{padding:7px 11px;font-size:11px}
 .button-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .back-link{display:inline-block;font-size:12px;color:#626976;margin-bottom:27px}
