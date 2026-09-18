@@ -2,8 +2,10 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { signOut } from '@/app/actions';
+import { googlePickerConfiguration } from '@/lib/google-config';
 import DeleteAccountButton from './delete-account-button';
 import ErrorPopup from './error-popup';
+import SyncTrackerButton from './sync-tracker-button';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +20,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   ]);
   const name = profile?.display_name || 'Your account';
   const initials = name.split(/\s+/).slice(0, 2).map((part: string) => part[0]).join('').toUpperCase();
+  const pickerConfig = googlePickerConfiguration();
   return <section className="settings-page">
     <h1>Settings</h1>
     <p className="page-subtitle">Manage your workspace connections and plan.</p>
@@ -34,7 +37,10 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
           <p>{connections && connections.length > 0 ? `Connected to: ${connections.map((connection) => `${connection.spreadsheet_name} · ${connection.sheet_name}`).join(', ')}` : 'Not connected'}</p>
           <p className="muted">We only access the file you selected. Connect to import your tracker.</p>
         </div>
-        <div className="button-row"><Link className="button" href="/tracker-setup">{connections && connections.length > 0 ? 'Change Tracker' : 'Connect Tracker'}</Link></div>
+        <div className="button-row">
+          {connections && connections.length > 0 && pickerConfig && connections.map((connection) => <SyncTrackerButton key={connection.id} connectionId={connection.id} clientId={pickerConfig.clientId} />)}
+          <Link className="button" href="/tracker-setup">{connections && connections.length > 0 ? 'Change Tracker' : 'Connect Tracker'}</Link>
+        </div>
       </section>
       <section>
         <div>
