@@ -30,15 +30,21 @@ export default function FollowUpClient({ application, days, done: initiallyDone,
   const [feedback, setFeedback] = useState('');
   const [done, setDone] = useState(initiallyDone);
   const [busy, setBusy] = useState(false);
+  const [stage, setStage] = useState(application.stage);
+  const [outcome, setOutcome] = useState('');
   const due = !done;
+  const OUTCOMES = ['Applied', 'Interview', 'Offer', 'Rejected', 'Ghosted', 'Withdrawn', 'Replied'];
   async function recordFollowUp() {
+    if (!outcome) return setFeedback('Choose what happened next before recording.');
     setBusy(true);
     try {
-      const response = await fetch(`/api/applications/${application.id}/follow-up`, { method: 'POST' });
+      const replied = outcome === 'Replied';
+      const response = await fetch(`/api/applications/${application.id}/follow-up`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(replied ? { replied: true } : { stage: outcome }) });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Could not record the follow-up.');
       setDone(true);
-      setFeedback('Follow-up recorded. Application stage unchanged.');
+      if (result.stage) setStage(result.stage);
+      setFeedback(replied ? 'Follow-up recorded. Employer reply noted.' : result.stage ? `Follow-up recorded. Stage updated to ${result.stage}.` : 'Follow-up recorded. Stage unchanged.');
     } catch (error) { setFeedback(error instanceof Error ? error.message : 'Could not record the follow-up.'); }
     finally { setBusy(false); }
   }
@@ -51,10 +57,10 @@ export default function FollowUpClient({ application, days, done: initiallyDone,
     <p className="eyebrow">A THOUGHTFUL NEXT STEP</p>
     <h1>Follow up</h1>
     <p className="page-subtitle">{application.company} · {application.role}</p>
-    <div className="surface follow-summary"><div><h2>{done ? 'Follow-up recorded' : due ? 'Follow-up recommended' : 'Draft a follow-up'}</h2><p className="muted">Applied {dateLabel(application.dateApplied)}{due ? ` · Waiting ${days} days` : ''}</p><p>{done ? 'Your timeline has been updated. The application stage is unchanged.' : 'No recruiter response detected. A short, polite check-in may help.'}</p></div><span className={'status-chip status-' + application.stage.toLowerCase()}><span aria-hidden="true" className="status-dot"/>{application.stage}</span></div>
+    <div className="surface follow-summary"><div><h2>{done ? 'Follow-up recorded' : due ? 'Follow-up recommended' : 'Draft a follow-up'}</h2><p className="muted">Applied {dateLabel(application.dateApplied)}{due ? ` · Waiting ${days} days` : ''}</p><p>{done ? 'Your timeline has been updated.' : 'No recruiter response detected. A short, polite check-in may help.'}</p></div><span className={'status-chip status-' + stage.toLowerCase()}><span aria-hidden="true" className="status-dot"/>{stage}</span></div>
     {draft === null ? <div className="draft-start"><h2>Start with a simple, professional note.</h2><p className="muted">You can edit every word before copying it.</p><button className="button primary" onClick={() => setDraft(draftTemplate(application, name))}>Generate Draft</button><p className="footnote">Local template · no AI service or email access</p></div> :
       <div className="draft-section"><label className="field">Your follow-up draft<textarea rows={15} value={draft} onChange={(event) => setDraft(event.target.value)}/></label><div className="button-row"><button className="button primary" onClick={copyDraft}>Copy</button><button className="button" onClick={() => setFeedback('Nothing was opened or sent. Copy the draft and send it from your own email.')}>Open Gmail</button></div></div>}
-    {due && <div className="follow-complete"><div><h3>Already followed up?</h3><p className="muted">Record it after you have contacted the employer. This does not send an email.</p></div><button className="button" disabled={busy} onClick={recordFollowUp}>{busy ? 'Recording…' : 'Mark as Followed Up'}</button></div>}
+    {due && <div className="follow-complete"><div><h3>Already followed up?</h3><p className="muted">Record it after you have contacted the employer. This does not send an email.</p></div><div className="stage-record"><select value={outcome} onChange={(event) => setOutcome(event.target.value)} aria-label="Outcome"><option value="">Choose what happened…</option>{OUTCOMES.map((option) => <option key={option} value={option}>{option}{option === application.stage ? ' (current)' : ''}</option>)}</select><button className="button" disabled={busy || !outcome} onClick={recordFollowUp}>{busy ? 'Recording…' : 'Record'}</button></div></div>}
     <p className="feedback" role="status">{feedback}</p>
   </section>;
 }

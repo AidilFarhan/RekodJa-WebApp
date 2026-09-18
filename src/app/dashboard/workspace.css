@@ -151,6 +151,7 @@ body:has(.workspace)>main{margin:0;padding:0;max-width:none}
 .follow-complete{display:flex;justify-content:space-between;align-items:center;gap:20px;border-top:1px solid #e5e7eb;padding-top:24px;margin-top:32px}
 .follow-complete h3{margin:0}
 .follow-complete p{font-size:12px;margin-top:5px}
+.stage-record{display:flex;align-items:center;gap:10px}.stage-record select{min-width:190px;margin:0}
 .feedback{color:#14213d;font-size:12px;margin-top:15px;min-height:18px}
 /* Settings */
 .settings-page .eyebrow{margin-bottom:13px}
