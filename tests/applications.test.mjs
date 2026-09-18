@@ -21,6 +21,7 @@ before(async () => {
   await db.exec(await readFile(new URL('../supabase/migrations/202609180002_replied_events.sql', import.meta.url), 'utf8'));
   await db.exec(await readFile(new URL('../supabase/migrations/202609180003_follow_up_events.sql', import.meta.url), 'utf8'));
   await db.exec(await readFile(new URL('../supabase/migrations/202609180004_import_issues.sql', import.meta.url), 'utf8'));
+  await db.exec(await readFile(new URL('../supabase/migrations/202609180008_url_match.sql', import.meta.url), 'utf8'));
   await db.query(`insert into auth.users values ($1, '{}'), ($2, '{}')`, [alice, bob]);
   await db.query(`insert into public.sheet_connections(id,user_id,spreadsheet_id,spreadsheet_name,sheet_name) values($1,$2,'sheet-a','Tracker','Applications')`, [connection, alice]);
   await db.query(`insert into public.applications(id,user_id,company,role,stage,date_applied,sheet_connection_id,import_key) values($1,$2,'Acme','Engineer','Applied','2026-09-01',$3,$4)`, [application, alice, connection, 'a'.repeat(64)]);
@@ -112,6 +113,16 @@ test('replied added on a later import appends exactly one employer_response even
   await db.query(`select * from public.import_sheet_application($1,$2,'Zeta','Ops','Applied'::public.application_stage,'2026-09-05','Referral','',true)`, [connection, importKey]);
   const responseEvents = await db.query(`select count(*)::int as count from public.application_events e join public.applications a on a.id=e.application_id where a.import_key=$1 and e.event_type='employer_response'`, [importKey]);
   assert.equal(responseEvents.rows[0].count, 1);
+}));
+
+test('renaming a row in the sheet updates the existing application when the job URL matches', async () => asUser(alice, async () => {
+  const first = await db.query(`select * from public.import_sheet_application($1,$2,'OldCo','Engineer','Applied'::public.application_stage,'2026-09-01','LinkedIn','https://example.com/renamed-job',false)`, [connection, 'e'.repeat(64)]);
+  assert.equal(first.rows[0].created, true);
+  const renamed = await db.query(`select * from public.import_sheet_application($1,$2,'NewCo','Engineer','Applied'::public.application_stage,'2026-09-01','LinkedIn','https://example.com/renamed-job',false)`, [connection, 'f'.repeat(64)]);
+  assert.equal(renamed.rows[0].created, false);
+  const { rows } = await db.query(`select company from public.applications where job_url='https://example.com/renamed-job'`);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].company, 'NewCo');
 }));
 
 test('owner can record a follow_up_completed event that leaves the stage unchanged', async () => asUser(alice, async () => {
