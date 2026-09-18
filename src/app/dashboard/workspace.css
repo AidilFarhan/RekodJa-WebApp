@@ -154,6 +154,7 @@ body:has(.workspace)>main{margin:0;padding:0;max-width:none}
 .stage-record{display:flex;align-items:center;gap:10px}.stage-record select{min-width:190px;margin:0}
 .sync-row{display:flex;align-items:center;gap:12px}.sync-feedback{font-size:12px;color:#555;max-width:420px}
 .sync-dialog{max-width:540px;text-align:left}.sync-notes{list-style:none;margin:0 0 16px;padding:0;max-height:220px;overflow-y:auto;font-size:13px;color:#555}.sync-notes li{padding:8px 10px;border-bottom:1px solid #e7e7e4;line-height:1.5}.sync-notes li:last-child{border-bottom:0}
+.detail-delete{margin-top:28px;text-align:right}
 .feedback{color:#14213d;font-size:12px;margin-top:15px;min-height:18px}
 /* Settings */
 .settings-page .eyebrow{margin-bottom:13px}
