@@ -47,15 +47,17 @@ function dateValue(value: string): string | null {
 export function parseSheetRows(values: unknown[][], spreadsheetId: string, sheetName: string) {
   if (!values.length) return { rows: [] as ImportRow[], errors: ['The selected tab is empty.'], warnings: [] };
   const headers = values[0].map((value) => normalize(value).toLowerCase());
-  const required = ['date applied', 'company', 'role', 'job url', 'status', 'source'];
+  const required = ['date applied', 'company', 'role', 'status', 'source'];
   const aliases: Record<string, string[]> = { 'job url': ['job url', 'job link'] };
   const positions = Object.fromEntries(required.map((header) => [header, (aliases[header] ?? [header]).map((alias) => headers.indexOf(alias)).find((index) => index >= 0) ?? -1]));
   const missing = required.filter((header) => positions[header] < 0);
   if (missing.length) return { rows: [] as ImportRow[], errors: [`Missing columns: ${missing.join(', ')}.`], warnings: [] };
+  const jobUrlIndex = ['job url', 'job link'].map((alias) => headers.indexOf(alias)).find((index) => index >= 0) ?? -1;
 
   const rows: ImportRow[] = [];
   const errors: string[] = [];
   const warnings: string[] = [];
+  if (jobUrlIndex < 0) warnings.push('Column "Job URL" was not found; links will be empty.');
   values.slice(1).forEach((raw, offset) => {
     if (!raw.some((cell) => normalize(cell))) return;
     const line = offset + 2;
@@ -67,7 +69,7 @@ export function parseSheetRows(values: unknown[][], spreadsheetId: string, sheet
     const rawDate = normalize(raw[positions['date applied']]);
     const dateApplied = dateValue(rawDate);
     const source = normalize(raw[positions.source]);
-    const jobUrl = normalize(raw[positions['job url']]);
+    const jobUrl = jobUrlIndex >= 0 ? normalize(raw[jobUrlIndex]) : '';
     if (!company || !role || !APPLICATION_STAGES.includes(stage as ApplicationStage)) {
       errors.push(`Row ${line} was skipped: company, role and a valid status are required.`);
       return;

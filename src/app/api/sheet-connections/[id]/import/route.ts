@@ -13,7 +13,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   const { id } = await params;
   const { data: connection, error: connectionError } = await client.from('sheet_connections').select('id, spreadsheet_id, sheet_name').eq('id', id).single();
   if (connectionError || !connection) return NextResponse.json({ error: 'Tracker connection not found.' }, { status: 404 });
-  const range = `'${connection.sheet_name.replaceAll("'", "''")}'!A:G`;
+  const range = `'${connection.sheet_name.replaceAll("'", "''")}'!A:Z`;
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(connection.spreadsheet_id)}/values/${encodeURIComponent(range)}?majorDimension=ROWS&valueRenderOption=FORMATTED_VALUE`;
   const googleResponse = await fetch(url, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
   if (!googleResponse.ok) return NextResponse.json({ error: 'Google could not read the connected sheet. Reconnect access and try again.' }, { status: 502 });
