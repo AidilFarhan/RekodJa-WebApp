@@ -70,5 +70,9 @@ export default function SyncTrackerButton({ connectionId, clientId }: { connecti
       setMessage(error instanceof Error ? error.message : 'Sync failed.');
     } finally { setBusy(false); }
   }
-  return <div className="sync-row"><button className="button" disabled={busy} onClick={sync}>{busy ? 'Syncing…' : 'Sync now'}</button>{message && <span className="sync-feedback" role="status">{message}</span>}</div>;
+  return <div className="sync-row">
+    <button className="button" disabled={busy} onClick={sync}>{busy ? 'Syncing…' : 'Sync now'}</button>
+    {message && <span className="sync-feedback" role="status">{message}</span>}
+    {busy && <div className="importing-overlay" role="status" aria-live="polite"><div className="importing-dialog"><img className="cat-img" src="/cat-run.gif" alt="Running cat" /><p>Syncing your tracker…</p><div className="importing-track" aria-hidden="true"><span/><span/><span/></div></div></div>}
+  </div>;
 }
