@@ -31,7 +31,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       <section>
         <div>
           <h2>Google Sheet</h2>
-          <p>{connections && connections.length > 0 ? `Connected to: ${connections.map((connection) => connection.spreadsheet_name).join(', ')}` : 'Not connected'}</p>
+          <p>{connections && connections.length > 0 ? `Connected to: ${connections.map((connection) => `${connection.spreadsheet_name} · ${connection.sheet_name}`).join(', ')}` : 'Not connected'}</p>
           <p className="muted">We only access the file you selected. Connect to import your tracker.</p>
         </div>
         <div className="button-row"><Link className="button" href="/tracker-setup">{connections && connections.length > 0 ? 'Change Tracker' : 'Connect Tracker'}</Link></div>

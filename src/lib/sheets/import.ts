@@ -48,7 +48,11 @@ export function parseSheetRows(values: unknown[][], spreadsheetId: string, sheet
   if (!values.length) return { rows: [] as ImportRow[], errors: ['The selected tab is empty.'], warnings: [] };
   const headers = values[0].map((value) => normalize(value).toLowerCase());
   const required = ['date applied', 'company', 'role', 'status', 'source'];
-  const aliases: Record<string, string[]> = { 'job url': ['job url', 'job link'] };
+  const aliases: Record<string, string[]> = {
+    'job url': ['job url', 'job link'],
+    role: ['role', 'position'],
+    status: ['status', 'current status'],
+  };
   const positions = Object.fromEntries(required.map((header) => [header, (aliases[header] ?? [header]).map((alias) => headers.indexOf(alias)).find((index) => index >= 0) ?? -1]));
   const missing = required.filter((header) => positions[header] < 0);
   if (missing.length) return { rows: [] as ImportRow[], errors: [`Missing columns: ${missing.join(', ')}.`], warnings: [] };

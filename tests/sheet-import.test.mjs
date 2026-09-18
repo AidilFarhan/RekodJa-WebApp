@@ -50,6 +50,16 @@ test('rejects impossible calendar dates and imports them without a date', () => 
   assert.match(result.warnings[1], /Row 3/);
 });
 
+test('accepts Position and Current Status header variants', () => {
+  const result = parseSheetRows([
+    ['Date Applied', 'Company', 'Position', 'Job Link', 'Current Status', 'Source', 'Days Since Applied'],
+    ['', 'Deloitte', 'Indirect Tax Associate', 'https://www.linkedin.com/jobs/view/4465218761/', 'Applied', 'LinkedIn', '1'],
+  ], 'sheet-1', 'Sheet1');
+  assert.equal(result.errors.length, 0);
+  assert.equal(result.rows.length, 1);
+  assert.deepEqual(result.rows[0], { importKey: result.rows[0].importKey, company: 'Deloitte', role: 'Indirect Tax Associate', stage: 'Applied', replied: false, dateApplied: null, source: 'LinkedIn', jobUrl: 'https://www.linkedin.com/jobs/view/4465218761/' });
+});
+
 test('missing date imports with a null date and stable fallback key', () => {
   const headersWithDate = ['Date Applied', 'Company', 'Role', 'Job URL', 'Status', 'Source'];
   const first = parseSheetRows([headersWithDate, ['', 'Acme', 'Engineer', 'https://example.com/job', 'Applied', 'LinkedIn']], 'sheet-1', 'Applications');
