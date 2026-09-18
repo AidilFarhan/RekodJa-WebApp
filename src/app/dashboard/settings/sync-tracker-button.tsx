@@ -47,32 +47,32 @@ function summary(result: { created?: number; updated?: number; skipped?: number;
   const updated = result.updated ?? 0;
   const skipped = result.skipped ?? 0;
   const counts = [`${created} new`, `${updated} updated`, skipped ? `${skipped} skipped` : ''].filter(Boolean).join(', ');
-  const notes = (result.skippedDetails ?? []).slice(0, 3).join(' ');
-  return notes ? `Synced — ${counts}. ${notes}` : `Synced — ${counts}.`;
+  const notes = [...new Set(result.skippedDetails ?? [])].slice(0, 6);
+  return { counts, notes };
 }
 
 export default function SyncTrackerButton({ connectionId, clientId }: { connectionId: string; clientId: string }) {
   const token = useRef('');
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState('');
+  const [popup, setPopup] = useState<{ title: string; notes: string[] } | null>(null);
   const router = useRouter();
   async function sync() {
     setBusy(true);
-    setMessage('');
     try {
       token.current = await authorize(clientId, token.current);
       const response = await fetch(`/api/sheet-connections/${connectionId}/import`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token.current}` } });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Sync failed.');
-      setMessage(summary(result));
+      const { counts, notes } = summary(result);
+      setPopup({ title: `Synced — ${counts}.`, notes });
       router.refresh();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Sync failed.');
+      setPopup({ title: error instanceof Error ? error.message : 'Sync failed.', notes: [] });
     } finally { setBusy(false); }
   }
   return <div className="sync-row">
     <button className="button" disabled={busy} onClick={sync}>{busy ? 'Syncing…' : 'Sync now'}</button>
-    {message && <span className="sync-feedback" role="status">{message}</span>}
     {busy && <div className="importing-overlay" role="status" aria-live="polite"><div className="importing-dialog"><img className="cat-img" src="/cat-run.gif" alt="Running cat" /><p>Syncing your tracker…</p><div className="importing-track" aria-hidden="true"><span/><span/><span/></div></div></div>}
+    {popup && !busy && <div className="importing-overlay" role="dialog" aria-modal="true"><div className="importing-dialog sync-dialog"><p className="popup-title">{popup.title}</p>{popup.notes.length > 0 && <ul className="sync-notes">{popup.notes.map((note) => <li key={note}>{note}</li>)}</ul>}<button className="button" onClick={() => setPopup(null)}>Close</button></div></div>}
   </div>;
 }
