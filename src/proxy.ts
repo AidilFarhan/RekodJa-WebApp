@@ -3,6 +3,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { configuration } from './lib/config';
 
 export async function proxy(request: NextRequest) {
+  // Supabase falls back to its Site URL when flow state is lost; if that URL is
+  // the bare origin, the auth code lands on "/" instead of /auth/callback.
+  // Forward it so sign-in can still complete.
+  if (request.nextUrl.pathname === '/' && request.nextUrl.searchParams.has('code')) {
+    const code = request.nextUrl.searchParams.get('code');
+    const callback = new URL('/auth/callback', request.nextUrl.origin);
+    callback.searchParams.set('code', code ?? '');
+    return NextResponse.redirect(callback, { headers: { 'Cache-Control': 'private, no-store' } });
+  }
   if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY || !process.env.APP_URL) return NextResponse.next();
   const { url, key, appUrl } = configuration();
   let response = NextResponse.next({ request });
