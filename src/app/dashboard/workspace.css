@@ -21,6 +21,10 @@ body:has(.workspace)>main{margin:0;padding:0;max-width:none}
 .sidebar-bottom p{border-top:1px solid #e6e9ee;padding-top:18px;margin-top:30px;font-size:11px;line-height:1.8;color:#697589}
 .workspace-body{margin-left:180px;min-width:0}
 .workspace-topbar{height:70px;border-bottom:1px solid #e7eaf0;padding:0 42px;display:flex;justify-content:space-between;align-items:center}
+.topbar-left{display:flex;align-items:center;gap:10px}
+.sidebar-toggle{display:grid;gap:3px;background:none;border:0;padding:8px;cursor:pointer;border-radius:4px}
+.sidebar-toggle:hover{background:#eef0f4}
+.sidebar-toggle span{display:block;width:18px;height:2px;background:#14213d;border-radius:1px}
 .workspace-topbar a{display:flex;align-items:center;gap:12px;text-decoration:none;font-size:12px}
 .topbar-right{display:flex;align-items:center;gap:18px;position:relative}
 .notifications{position:relative}

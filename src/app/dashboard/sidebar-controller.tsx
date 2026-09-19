@@ -7,7 +7,9 @@ const HIDE_DELAY_MS = 600;
 
 export default function SidebarController({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
+  const [open, setOpen] = useState(false);
   const collapsedRef = useRef(false);
+  const openRef = useRef(false);
 
   useEffect(() => {
     if (window.matchMedia('(max-width: 600px)').matches) return;
@@ -19,7 +21,15 @@ export default function SidebarController({ children }: { children: React.ReactN
       collapsedRef.current = value;
       setCollapsed(value);
     };
+    const onToggle = () => {
+      const next = !openRef.current;
+      openRef.current = next;
+      setOpen(next);
+      cancelHide();
+      if (next) setCollapsedState(false);
+    };
     const onMouseMove = (event: MouseEvent) => {
+      if (openRef.current) return;
       const sidebar = document.querySelector('.workspace-sidebar');
       if (!sidebar) return;
       const rect = sidebar.getBoundingClientRect();
@@ -34,8 +44,9 @@ export default function SidebarController({ children }: { children: React.ReactN
       }
     };
     window.addEventListener('mousemove', onMouseMove);
-    return () => { window.removeEventListener('mousemove', onMouseMove); cancelHide(); };
+    window.addEventListener('jt-sidebar-toggle', onToggle);
+    return () => { window.removeEventListener('mousemove', onMouseMove); window.removeEventListener('jt-sidebar-toggle', onToggle); cancelHide(); };
   }, []);
 
-  return <div className={'workspace' + (collapsed ? ' sidebar-collapsed' : '')}>{children}</div>;
+  return <div className={'workspace' + (collapsed && !open ? ' sidebar-collapsed' : '')}>{children}</div>;
 }
