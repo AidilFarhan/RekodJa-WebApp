@@ -16,9 +16,8 @@ export default async function GmailScanPage() {
   if (applicationsError) throw new Error('Could not load applications.');
   const clientId = googlePickerConfiguration()?.clientId ?? '';
   return <section className="gmail-scan-page">
-    <p className="eyebrow">GMAIL SCAN</p>
     <h1>Gmail scan</h1>
-    <p className="page-subtitle">Read application emails from the last 45 days, then review and confirm what changed.</p>
+    <p className="page-subtitle">Showing your email from the last 45 days.</p>
     <GmailScanClient clientId={clientId} applications={(applications ?? []) as { id: string; company: string; role: string; job_url: string }[]} />
   </section>;
 }
