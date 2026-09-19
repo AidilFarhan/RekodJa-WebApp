@@ -39,7 +39,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
         </div>
         <div className="button-row">
           {connections && connections.length > 0 && pickerConfig && connections.map((connection) => <SyncTrackerButton key={connection.id} connectionId={connection.id} clientId={pickerConfig.clientId} />)}
-          <Link className="button" href="/tracker-setup">{connections && connections.length > 0 ? 'Change Tracker' : 'Connect Tracker'}</Link>
+          <Link className="button" href="/tracker-setup?view=change">{connections && connections.length > 0 ? 'Change Tracker' : 'Connect Tracker'}</Link>
         </div>
       </section>
       <section>

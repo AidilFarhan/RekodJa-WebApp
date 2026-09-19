@@ -19,7 +19,7 @@ export default async function TrackerSetupPage({ searchParams }: { searchParams:
   const { count: applicationCount, error: applicationsError } = await client.from('applications').select('id', { count: 'exact', head: true });
   if (applicationsError) throw new Error('Could not load applications.');
   const params = await searchParams;
-  if (params.view !== 'onboarding' && data && data.length > 0 && (applicationCount ?? 0) > 0) redirect('/dashboard/overview');
+  if (params.view !== 'onboarding' && params.view !== 'change' && data && data.length > 0 && (applicationCount ?? 0) > 0) redirect('/dashboard/overview');
   const googleConfig = googlePickerConfiguration();
   const accountView = params.view === 'onboarding';
   return <section className="onboarding-page">
