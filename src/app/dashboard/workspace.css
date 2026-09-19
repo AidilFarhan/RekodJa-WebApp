@@ -177,3 +177,8 @@ body:has(.workspace)>main{margin:0;padding:0;max-width:none}
 @media(max-width:900px){.analytics-grid{grid-template-columns:1fr}.workspace-content{padding:28px 24px}}
 @media(max-width:900px){.application-filters{grid-template-columns:1fr 1fr}.application-filters label:first-child{grid-column:1/-1}.metrics{grid-template-columns:repeat(2,1fr);row-gap:23px}.metrics>div:nth-child(3){padding-left:0}.metrics>div:nth-child(2){border:0}}
 @media(max-width:600px){.workspace-sidebar{position:static;width:100%;padding:16px;border-bottom:1px solid #e7eaf0}.nav-caption,.sidebar-bottom{display:none}.workspace-sidebar nav{display:flex;margin-top:12px}.workspace-body{margin-left:0}.workspace-topbar{height:54px;padding:0 16px}.workspace-content{padding:24px 16px}}
+.stage-changer{display:flex;flex-direction:column;align-items:flex-end;gap:4px;min-width:160px}
+.stage-changer select{margin:0}
+.stage-sync-note{font-size:11px;color:#626976;margin:0;max-width:260px;text-align:right;line-height:1.4}
+.stage-sync-note.ok{color:#2c6e49}
+.stage-sync-note.warn{color:#a53535}

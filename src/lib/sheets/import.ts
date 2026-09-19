@@ -14,7 +14,7 @@ export type ImportRow = {
   jobUrl: string;
 };
 
-const normalize = (value: unknown) => String(value ?? '').trim();
+export const normalize = (value: unknown) => String(value ?? '').trim();
 export const normalizeUrl = (value: string) => {
   if (!value) return '';
   try {
@@ -24,12 +24,37 @@ export const normalizeUrl = (value: string) => {
   } catch { return value.toLowerCase(); }
 };
 
+export function sheetColumns(headers: unknown[]) {
+  const list = headers.map((value) => normalize(value).toLowerCase());
+  const find = (aliases: string[]) => aliases.map((alias) => list.indexOf(alias)).find((index) => index >= 0) ?? -1;
+  return {
+    dateApplied: find(['date applied']),
+    company: find(['company']),
+    role: find(['role', 'position']),
+    status: find(['status', 'current status']),
+    source: find(['source']),
+    jobUrl: find(['job url', 'job link']),
+  };
+}
+
+export function rowIdentityKey({ spreadsheetId, sheetName, company, role, dateApplied, jobUrl }: {
+  spreadsheetId: string;
+  sheetName: string;
+  company: string;
+  role: string;
+  dateApplied: string | null;
+  jobUrl: string;
+}) {
+  const identity = [spreadsheetId, sheetName, dateApplied ?? '', company.toLowerCase(), role.toLowerCase(), normalizeUrl(jobUrl)].join('\u001f');
+  return createHash('sha256').update(identity).digest('hex');
+}
+
 function validCalendarDate(year: number, month: number, day: number) {
   const candidate = new Date(Date.UTC(year, month - 1, day));
   return candidate.getUTCFullYear() === year && candidate.getUTCMonth() === month - 1 && candidate.getUTCDate() === day;
 }
 
-function dateValue(value: string): string | null {
+export function dateValue(value: string): string | null {
   const timestamp = /^(\d{4})-(\d{2})-(\d{2})(?:[ T].*)?$/.exec(value);
   if (timestamp) {
     const [, year, month, day] = timestamp;
@@ -46,17 +71,17 @@ function dateValue(value: string): string | null {
 
 export function parseSheetRows(values: unknown[][], spreadsheetId: string, sheetName: string) {
   if (!values.length) return { rows: [] as ImportRow[], errors: ['The selected tab is empty.'], warnings: [], jobUrls: [] };
-  const headers = values[0].map((value) => normalize(value).toLowerCase());
-  const required = ['date applied', 'company', 'role', 'status', 'source'];
-  const aliases: Record<string, string[]> = {
-    'job url': ['job url', 'job link'],
-    role: ['role', 'position'],
-    status: ['status', 'current status'],
-  };
-  const positions = Object.fromEntries(required.map((header) => [header, (aliases[header] ?? [header]).map((alias) => headers.indexOf(alias)).find((index) => index >= 0) ?? -1]));
-  const missing = required.filter((header) => positions[header] < 0);
+  const positions = sheetColumns(values[0]);
+  const required: { key: keyof typeof positions; label: string }[] = [
+    { key: 'dateApplied', label: 'date applied' },
+    { key: 'company', label: 'company' },
+    { key: 'role', label: 'role' },
+    { key: 'status', label: 'status' },
+    { key: 'source', label: 'source' },
+  ];
+  const missing = required.filter(({ key }) => positions[key] < 0).map(({ label }) => label);
   if (missing.length) return { rows: [] as ImportRow[], errors: [`Missing columns: ${missing.join(', ')}.`], warnings: [], jobUrls: [] };
-  const jobUrlIndex = ['job url', 'job link'].map((alias) => headers.indexOf(alias)).find((index) => index >= 0) ?? -1;
+  const jobUrlIndex = positions.jobUrl;
 
   const rows: ImportRow[] = [];
   const errors: string[] = [];
@@ -71,7 +96,7 @@ export function parseSheetRows(values: unknown[][], spreadsheetId: string, sheet
     const rawStage = normalize(raw[positions.status]);
     const replied = rawStage.toLowerCase() === 'replied';
     const stage = replied ? 'Applied' : rawStage || 'Applied';
-    const rawDate = normalize(raw[positions['date applied']]);
+    const rawDate = normalize(raw[positions.dateApplied]);
     const dateApplied = dateValue(rawDate);
     const source = normalize(raw[positions.source]);
     const jobUrl = jobUrlIndex >= 0 ? normalize(raw[jobUrlIndex]) : '';
@@ -81,9 +106,8 @@ export function parseSheetRows(values: unknown[][], spreadsheetId: string, sheet
       return;
     }
     if (rawDate && !dateApplied) warnings.push(`Row ${line}: date "${rawDate}" is not a valid calendar date; imported without a date.`);
-    const identity = [spreadsheetId, sheetName, dateApplied ?? '', company.toLowerCase(), role.toLowerCase(), normalizeUrl(jobUrl)].join('\u001f');
     rows.push({
-      importKey: createHash('sha256').update(identity).digest('hex'),
+      importKey: rowIdentityKey({ spreadsheetId, sheetName, company, role, dateApplied, jobUrl }),
       company, role, stage: stage as ApplicationStage, replied, dateApplied, source, jobUrl,
     });
   });

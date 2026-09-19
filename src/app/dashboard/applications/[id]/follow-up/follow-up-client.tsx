@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { requestGoogleToken } from '@/lib/google-token';
 
 type ApplicationInfo = { id: string; company: string; role: string; stage: string; dateApplied: string | null };
 
@@ -25,7 +26,7 @@ Kind regards,
 ${name}`;
 }
 
-export default function FollowUpClient({ application, days, done: initiallyDone, name, from }: { application: ApplicationInfo; days: number; done: boolean; name: string; from?: string }) {
+export default function FollowUpClient({ application, days, done: initiallyDone, name, from, clientId }: { application: ApplicationInfo; days: number; done: boolean; name: string; from?: string; clientId: string }) {
   const [draft, setDraft] = useState<string | null>(null);
   const [feedback, setFeedback] = useState('');
   const [done, setDone] = useState(initiallyDone);
@@ -39,12 +40,17 @@ export default function FollowUpClient({ application, days, done: initiallyDone,
     setBusy(true);
     try {
       const replied = outcome === 'Replied';
-      const response = await fetch(`/api/applications/${application.id}/follow-up`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(replied ? { replied: true } : { stage: outcome }) });
+      let googleToken = '';
+      try { googleToken = await requestGoogleToken(clientId); } catch { googleToken = ''; }
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (googleToken) headers.Authorization = `Bearer ${googleToken}`;
+      const response = await fetch(`/api/applications/${application.id}/follow-up`, { method: 'POST', headers, body: JSON.stringify(replied ? { replied: true } : { stage: outcome }) });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Could not record the follow-up.');
       setDone(true);
       if (result.stage) setStage(result.stage);
-      setFeedback(replied ? 'Follow-up recorded. Employer reply noted.' : result.stage ? `Follow-up recorded. Stage updated to ${result.stage}.` : 'Follow-up recorded. Stage unchanged.');
+      const sheetNote = result.sheet?.synced ? ' The status was also updated in your Google Sheet.' : result.sheet ? ` The Google Sheet was not updated: ${result.sheet.message ?? ''}` : '';
+      setFeedback(replied ? `Follow-up recorded. Employer reply noted.${sheetNote}` : result.stage ? `Follow-up recorded. Stage updated to ${result.stage}.${sheetNote}` : `Follow-up recorded. Stage unchanged.${sheetNote}`);
     } catch (error) { setFeedback(error instanceof Error ? error.message : 'Could not record the follow-up.'); }
     finally { setBusy(false); }
   }

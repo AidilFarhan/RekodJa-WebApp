@@ -1,5 +1,6 @@
 import { notFound, redirect } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { googlePickerConfiguration } from '@/lib/google-config';
 import { waitingDays, type DashboardApplication, type DashboardEvent } from '@/lib/dashboard';
 import FollowUpClient from './follow-up-client';
 
@@ -20,5 +21,5 @@ export default async function FollowUpPage({ params, searchParams }: { params: P
   const applicationTyped = application as DashboardApplication;
   const appEvents = (events ?? []) as DashboardEvent[];
   const done = appEvents.some((event) => event.event_type === 'follow_up_completed');
-  return <FollowUpClient application={{ id: applicationTyped.id, company: applicationTyped.company, role: applicationTyped.role, stage: applicationTyped.stage, dateApplied: applicationTyped.date_applied }} days={waitingDays(applicationTyped.date_applied)} done={done} name={profile?.display_name || 'there'} from={from} />;
+  return <FollowUpClient application={{ id: applicationTyped.id, company: applicationTyped.company, role: applicationTyped.role, stage: applicationTyped.stage, dateApplied: applicationTyped.date_applied }} days={waitingDays(applicationTyped.date_applied)} done={done} name={profile?.display_name || 'there'} from={from} clientId={googlePickerConfiguration()?.clientId ?? ''} />;
 }
