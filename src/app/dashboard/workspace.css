@@ -41,6 +41,7 @@ body:has(.workspace)>main{margin:0;padding:0;max-width:none}
 .muted{color:#626976}
 .applications-page .eyebrow,.overview-page .eyebrow,.analytics-page .eyebrow{color:#657184;font-size:10px;letter-spacing:1.6px}
 .applications-page h1,.overview-page h1,.analytics-page h1,.actions-page h1,.follow-up-page h1,.settings-page h1{font-size:29px;margin:12px 0 19px;color:#23272f;letter-spacing:-1px}
+.overview-heading{display:flex;align-items:center;justify-content:space-between;gap:16px}.overview-heading h1{margin:12px 0 19px}
 .page-subtitle{color:#626976;margin:0;font-size:13px}
 .application-filters{display:grid;grid-template-columns:minmax(180px,1fr) 128px 164px auto;gap:16px;align-items:end;margin-top:32px}
 .application-filters label{margin:0;font-weight:400;color:#515b6b;font-size:12px}
