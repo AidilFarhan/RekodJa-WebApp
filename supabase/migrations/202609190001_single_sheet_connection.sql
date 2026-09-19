@@ -106,10 +106,20 @@ declare
   constraint_name text;
 begin
   for constraint_name in
-    select conname
-    from pg_constraint
-    where conrelid = 'public.sheet_connections'::regclass
-      and contype = 'u'
+    select con.conname
+    from pg_constraint con
+    where con.conrelid = 'public.sheet_connections'::regclass
+      and con.contype = 'u'
+      -- Keep unique constraints that foreign keys depend on. The
+      -- unique(id, user_id) constraint backs the applications and
+      -- import_issues foreign keys and must not be dropped.
+      and not exists (
+        select 1
+        from pg_constraint fk
+        where fk.contype = 'f'
+          and fk.confrelid = con.conrelid
+          and fk.confkey = con.conkey
+      )
   loop
     execute format(
       'alter table public.sheet_connections drop constraint %I',
