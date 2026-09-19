@@ -1,6 +1,7 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { scanGmail, scanTiming } from '../src/lib/gmail/scan-engine.ts';
+import { classifyEmail } from '../src/lib/gmail/scan-core.ts';
 
 const email = 'user@example.com';
 
@@ -108,6 +109,11 @@ test('keeps only the latest message per thread', async () => {
     assert.equal(result.candidates.length, 1);
     assert.equal(result.candidates[0].messageId, 'm2');
   } finally { globalThis.fetch = originalFetch; }
+});
+
+test('classifies expired-position and other-candidate wording as rejected', () => {
+  assert.equal(classifyEmail('Update on your application', 'This job posting has expired and is no longer taking applications.'), 'Rejected');
+  assert.equal(classifyEmail('Your application', 'We have already chosen another candidate for the position.'), 'Rejected');
 });
 
 test('retries a rate-limited list request and succeeds', async () => {

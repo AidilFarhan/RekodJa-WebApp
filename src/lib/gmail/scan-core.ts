@@ -38,7 +38,7 @@ export type ApplicationRecord = { id: string; company: string; role?: string; jo
 export function classifyEmail(subject: string, snippet: string): EmailStage {
   const text = subject + '\n' + snippet;
   if (!isApplicationEmail(subject, snippet)) return '';
-  if (/\bregret(?:fully)?\b.{0,160}(?:inform|advise|application|unable|cannot|not |unsuccessful)|not (?:be )?moving forward|not been successful|unsuccessful|not (?:been )?selected|unable to (?:offer|proceed)|decided (?:not to|to (?:proceed|move forward) with (?:other|another))|dukacita|tidak berjaya/i.test(text)) return 'Rejected';
+  if (/\bregret(?:fully)?\b.{0,160}(?:inform|advise|application|unable|cannot|not |unsuccessful)|not (?:be )?moving forward|not been successful|unsuccessful|not (?:been )?selected|unable to (?:offer|proceed)|decided (?:not to|to (?:proceed|move forward) with (?:other|another))|has expired and is no longer taking applications|we have already chosen another candidate for the position|dukacita|tidak berjaya/i.test(text)) return 'Rejected';
   if (/pleased to offer you|offer (?:you|of) (?:employment|the (?:position|role))|your (?:job|employment) offer|(?:job|employment) offer\s*[:–—-]|tawaran (?:jawatan|pekerjaan)/i.test(text)) return 'Offer';
   if (/interview (?:invitation|scheduled|confirmation)|invit(?:e|ing|ation).{0,80}interview|interview for|schedule.{0,40}interview|temu duga|temuduga/i.test(text)) return 'Interview';
   if (/application (received|submitted)|received your application|thank you for (applying|your application)|thanks for applying|permohonan.*diterima/i.test(text)) return 'Applied';

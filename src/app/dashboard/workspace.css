@@ -186,10 +186,10 @@ body:has(.workspace)>main{margin:0;padding:0;max-width:none}
 .scan-actions{display:flex;align-items:center;gap:14px;margin:6px 0 14px}
 .scan-actions .muted{margin:0;font-size:12px}
 .scan-list{display:grid;gap:14px;margin-top:10px}
-.scan-card{border:1px solid #e5e7eb;border-radius:6px;padding:18px 20px;background:#fff}
-.scan-card h3{font-size:14px;margin:0}
-.scan-card .muted{font-size:11px;margin:2px 0 8px}
-.scan-snippet{font-size:12px;color:#555;margin:8px 0 14px;max-height:96px;overflow:hidden;white-space:pre-wrap}
+.scan-card{border:1px solid #e5e7eb;border-radius:6px;padding:18px 20px;background:#fff;min-width:0;max-width:100%;overflow:hidden}
+.scan-card h3{font-size:14px;margin:0;overflow-wrap:anywhere;word-break:break-word}
+.scan-card .muted{font-size:11px;margin:2px 0 8px;overflow-wrap:anywhere;word-break:break-word}
+.scan-snippet{font-size:12px;color:#555;margin:8px 0 14px;max-height:96px;overflow:hidden;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word}
 .scan-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .scan-grid label{margin:0;font-size:11px;color:#515b6b}
 .scan-grid input,.scan-grid select{margin:4px 0 0;font-size:12px;height:34px}
