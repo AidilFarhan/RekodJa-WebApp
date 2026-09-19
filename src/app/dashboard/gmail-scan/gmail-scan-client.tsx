@@ -84,6 +84,9 @@ function ScanCard({ candidate, applications, clientId, onSaved, onDismissed }: {
   const matched = applications.find((application) => application.id === candidate.matched_application_id);
 
   async function confirmCard() {
+    if (!company.trim() && !role.trim()) { setFeedback('Please insert company name and role.'); return; }
+    if (!company.trim()) { setFeedback('Please insert company name'); return; }
+    if (!role.trim()) { setFeedback('please insert role'); return; }
     setBusy(true);
     setFeedback('Saving…');
     try {
@@ -145,10 +148,10 @@ function ScanCard({ candidate, applications, clientId, onSaved, onDismissed }: {
     <p className="scan-snippet">{candidate.snippet}</p>
     <div className="scan-grid">
       <label>Company
-        <input value={company} onChange={(event) => setCompany(event.target.value)} />
+        <input className={company.trim() ? '' : 'empty'} placeholder="Please insert company name" value={company} onChange={(event) => setCompany(event.target.value)} />
       </label>
       <label>Role
-        <input value={role} onChange={(event) => setRole(event.target.value)} />
+        <input className={role.trim() ? '' : 'empty'} placeholder="please insert role" value={role} onChange={(event) => setRole(event.target.value)} />
       </label>
       <label>Status
         <select value={stage} onChange={(event) => setStage(event.target.value)}>{STAGES.map((option) => <option key={option}>{option}</option>)}</select>
@@ -161,7 +164,7 @@ function ScanCard({ candidate, applications, clientId, onSaved, onDismissed }: {
       </label>
     </div>
     <div className="button-row">
-      <button className="button primary" disabled={busy || !company.trim() || !role.trim()} onClick={confirmCard}>{busy ? 'Saving…' : 'Confirm'}</button>
+      <button className="button primary" disabled={busy} onClick={confirmCard}>{busy ? 'Saving…' : 'Confirm'}</button>
       <button className="button" disabled={busy} onClick={dismissCard}>Dismiss</button>
     </div>
     {feedback && <p className={'scan-feedback ' + (feedback.includes('✓') ? 'ok' : feedback.startsWith('Confirmed') ? 'ok' : 'warn')} role="status">{feedback}</p>}

@@ -193,6 +193,8 @@ body:has(.workspace)>main{margin:0;padding:0;max-width:none}
 .scan-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .scan-grid label{margin:0;font-size:11px;color:#515b6b}
 .scan-grid input,.scan-grid select{margin:4px 0 0;font-size:12px;height:34px}
+.scan-grid input.empty{border-color:#e2b3b3}
+.scan-grid input.empty::placeholder{color:#a53535}
 .scan-card .button{margin-top:12px}
 .scan-feedback{font-size:11px;color:#626976;margin:8px 0 0}
 .scan-feedback.ok{color:#2c6e49}.scan-feedback.warn{color:#a53535}
