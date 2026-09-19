@@ -29,17 +29,17 @@ function loadScript(id: string, src: string) {
 }
 
 /*
-  Returns an access token for the drive.file scope, the same scope the
-  tracker connection was authorised with. Google re-uses the existing
-  grant, so this normally completes without any prompt.
+  Returns an access token for the requested scope (drive.file by default,
+  gmail.readonly for the Gmail scan). Google re-uses the existing grant, so
+  this normally completes without any prompt.
 */
-export async function requestGoogleToken(clientId: string): Promise<string> {
+export async function requestGoogleToken(clientId: string, scope: string = DRIVE_FILE_SCOPE): Promise<string> {
   if (!clientId) throw new Error('Google authorization is not configured.');
   await loadScript('google-identity-services', 'https://accounts.google.com/gsi/client');
   return new Promise((resolve, reject) => {
     const client = googleWindow().google.accounts.oauth2.initTokenClient({
       client_id: clientId,
-      scope: DRIVE_FILE_SCOPE,
+      scope,
       callback: (response) => response.access_token ? resolve(response.access_token) : reject(new Error(response.error || 'Authorization was cancelled.')),
     });
     client.requestAccessToken({ prompt: '' });

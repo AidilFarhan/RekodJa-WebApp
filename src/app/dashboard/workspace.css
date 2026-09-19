@@ -44,7 +44,7 @@ body:has(.workspace)>main{margin:0;padding:0;max-width:none}
 .workspace-content>section{padding:0;border:0;border-radius:0}
 .muted{color:#626976}
 .applications-page .eyebrow,.overview-page .eyebrow,.analytics-page .eyebrow{color:#657184;font-size:10px;letter-spacing:1.6px}
-.applications-page h1,.overview-page h1,.analytics-page h1,.actions-page h1,.follow-up-page h1,.settings-page h1{font-size:29px;margin:12px 0 19px;color:#23272f;letter-spacing:-1px}
+.applications-page h1,.overview-page h1,.analytics-page h1,.actions-page h1,.follow-up-page h1,.settings-page h1,.gmail-scan-page h1{font-size:29px;margin:12px 0 19px;color:#23272f;letter-spacing:-1px}
 .overview-heading{display:flex;align-items:center;justify-content:space-between;gap:16px}.overview-heading h1{margin:12px 0 19px}
 .page-subtitle{color:#626976;margin:0;font-size:13px}
 .application-filters{display:grid;grid-template-columns:minmax(180px,1fr) 128px 164px auto;gap:16px;align-items:end;margin-top:32px}
@@ -182,3 +182,19 @@ body:has(.workspace)>main{margin:0;padding:0;max-width:none}
 .stage-sync-note{font-size:11px;color:#626976;margin:0;max-width:260px;text-align:right;line-height:1.4}
 .stage-sync-note.ok{color:#2c6e49}
 .stage-sync-note.warn{color:#a53535}
+/* Gmail scan */
+.scan-actions{display:flex;align-items:center;gap:14px;margin:6px 0 14px}
+.scan-actions .muted{margin:0;font-size:12px}
+.scan-list{display:grid;gap:14px;margin-top:10px}
+.scan-card{border:1px solid #e5e7eb;border-radius:6px;padding:18px 20px;background:#fff}
+.scan-card h3{font-size:14px;margin:0}
+.scan-card .muted{font-size:11px;margin:2px 0 8px}
+.scan-snippet{font-size:12px;color:#555;margin:8px 0 14px;max-height:96px;overflow:hidden;white-space:pre-wrap}
+.scan-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.scan-grid label{margin:0;font-size:11px;color:#515b6b}
+.scan-grid input,.scan-grid select{margin:4px 0 0;font-size:12px;height:34px}
+.scan-card .button{margin-top:12px}
+.scan-feedback{font-size:11px;color:#626976;margin:8px 0 0}
+.scan-feedback.ok{color:#2c6e49}.scan-feedback.warn{color:#a53535}
+.scan-confirmed{font-size:12px;color:#2c6e49;margin:8px 0 0}
+.scan-done{opacity:.85}
