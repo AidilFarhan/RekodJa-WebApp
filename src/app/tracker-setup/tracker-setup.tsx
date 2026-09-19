@@ -135,19 +135,29 @@ export default function TrackerSetup({ config, connections }: { config: Config; 
 
   async function saveConnection() {
     if (!picked || !sheetName) return;
+    const existing = connections[0];
+    if (existing && !window.confirm(`You already have a tracker connected (${existing.spreadsheet_name} · ${existing.sheet_name}). Replace it with "${picked.name}" · ${sheetName}?`)) return;
     setBusy(true); setMessage('');
-    const response = await fetch('/api/sheet-connections', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ spreadsheetId: picked.id, spreadsheetName: picked.name, sheetName }) });
-    const result = await response.json();
-    setBusy(false);
-    if (!response.ok) return setMessage(result.error || 'Could not save spreadsheet connection.');
+    let connectionId: string | null = null;
+    if (existing) {
+      const response = await fetch(`/api/sheet-connections/${existing.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ spreadsheetId: picked.id, spreadsheetName: picked.name, sheetName }) });
+      const result = await response.json();
+      if (!response.ok) { setBusy(false); return setMessage(result.error || 'Could not update the tracker connection.'); }
+      connectionId = existing.id;
+    } else {
+      const response = await fetch('/api/sheet-connections', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ spreadsheetId: picked.id, spreadsheetName: picked.name, sheetName }) });
+      const result = await response.json();
+      if (!response.ok) { setBusy(false); return setMessage(result.error || 'Could not save spreadsheet connection.'); }
+      connectionId = result.id;
+    }
     try {
       setImporting(true);
-      const importResponse = await fetch(`/api/sheet-connections/${result.id}/import`, { method: 'POST', headers: { Authorization: `Bearer ${token.current}` } });
+      const importResponse = await fetch(`/api/sheet-connections/${connectionId}/import`, { method: 'POST', headers: { Authorization: `Bearer ${token.current}` } });
       const importResult = await importResponse.json();
       if (!importResponse.ok) throw new Error(importResult.error || 'Could not import spreadsheet.');
       if (importResult.removals && importResult.removals.length > 0) {
         setImporting(false);
-        setRemovals({ connectionId: result.id, items: importResult.removals });
+        setRemovals({ connectionId: connectionId, items: importResult.removals });
         return;
       }
       setMessage(importSummary(importResult));
@@ -184,7 +194,7 @@ export default function TrackerSetup({ config, connections }: { config: Config; 
       <p><strong>{picked.name}</strong></p>
       <label htmlFor="sheet-name">Sheet tab</label>
       <select id="sheet-name" value={sheetName} onChange={(event) => setSheetName(event.target.value)}>{picked.tabs.map((tab) => <option key={tab}>{tab}</option>)}</select>
-      <button disabled={!sheetName || busy} onClick={saveConnection}>Connect this tab</button>
+      <button disabled={!sheetName || busy} onClick={saveConnection}>{connections.length > 0 ? 'Replace connected tracker with this tab' : 'Connect this tab'}</button>
     </div>}
     {connections.length > 0 && <div className="connections"><h2>Connected spreadsheets</h2>{connections.map((connection) => <div className="connection-row" key={connection.id}><span><strong>{connection.spreadsheet_name}</strong><small>{connection.sheet_name}</small></span><button disabled={busy} onClick={() => importConnection(connection.id)}>Import from Sheet</button></div>)}</div>}
     {message && <p className="message" role="status">{message}</p>}
