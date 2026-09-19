@@ -20,9 +20,9 @@ import {
 
 export const GMAIL_READONLY_SCOPE = 'https://www.googleapis.com/auth/gmail.readonly';
 
-// Same query string as the extension's background worker.
+// Same query string as the extension's background worker, but a 45-day window.
 export const GMAIL_SEARCH_QUERY =
-  'newer_than:3m -in:spam -in:trash -in:sent -in:drafts {"application" "thank you for applying" "thanks for applying" "interview" "regret" "job offer" "offer of employment" "permohonan" "temuduga" "temu duga"}';
+  'newer_than:45d -in:spam -in:trash -in:sent -in:drafts {"application" "thank you for applying" "thanks for applying" "interview" "regret" "job offer" "offer of employment" "permohonan" "temuduga" "temu duga"}';
 
 type ListResponse = { messages?: { id: string; threadId: string }[]; nextPageToken?: string; resultSizeEstimate?: number };
 type ProfileResponse = { emailAddress: string };

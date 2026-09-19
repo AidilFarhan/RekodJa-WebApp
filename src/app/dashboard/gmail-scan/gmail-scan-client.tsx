@@ -190,7 +190,7 @@ export default function GmailScanClient({ clientId, applications }: { clientId: 
 
   return <div>
     <div className="scan-actions">
-      <button className="button primary" disabled={busy} onClick={scan}>{busy ? 'Working…' : 'Scan Gmail (last 3 months)'}</button>
+      <button className="button primary" disabled={busy} onClick={scan}>{busy ? 'Working…' : 'Scan Gmail (last 45 days)'}</button>
       {loaded && <p className="muted">{candidates.length ? `${pending} pending · ${candidates.length - pending} confirmed` : 'No saved scan results yet.'}</p>}
     </div>
     {message && <p className="message" role="status">{message}</p>}

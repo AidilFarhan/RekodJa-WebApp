@@ -1,7 +1,7 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { scanGmail, scanTiming } from '../src/lib/gmail/scan-engine.ts';
-import { classifyEmail } from '../src/lib/gmail/scan-core.ts';
+import { scanGmail, scanTiming, GMAIL_SEARCH_QUERY } from '../src/lib/gmail/scan-engine.ts';
+import { classifyEmail, isApplicationEmail } from '../src/lib/gmail/scan-core.ts';
 
 const email = 'user@example.com';
 
@@ -114,6 +114,17 @@ test('keeps only the latest message per thread', async () => {
 test('classifies expired-position and other-candidate wording as rejected', () => {
   assert.equal(classifyEmail('Update on your application', 'This job posting has expired and is no longer taking applications.'), 'Rejected');
   assert.equal(classifyEmail('Your application', 'We have already chosen another candidate for the position.'), 'Rejected');
+});
+
+test('excludes SDK, OAuth verification and promotional campaign emails', () => {
+  assert.equal(isApplicationEmail('Get the call into your app, not just the terminal', 'Install the OpenRouter SDK and move your terminal test into your application code.'), false);
+  assert.equal(isApplicationEmail('Re: [Action Needed] OAuth Verification Request Acknowledgement', 'Thank you for your patience while we reviewed your application.'), false);
+  assert.equal(isApplicationEmail('JOM SERTAI KEMPEN SPEND BONANZA!', 'Kempen perbelanjaan hebat menanti anda.'), false);
+});
+
+test('scan window is the last 45 days', () => {
+  assert.match(GMAIL_SEARCH_QUERY, /newer_than:45d/);
+  assert.doesNotMatch(GMAIL_SEARCH_QUERY, /newer_than:3m/);
 });
 
 test('retries a rate-limited list request and succeeds', async () => {
