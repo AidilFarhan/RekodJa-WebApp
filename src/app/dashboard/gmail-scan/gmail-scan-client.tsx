@@ -161,10 +161,10 @@ function ScanCard({ candidate, applications, clientId, onSaved, onDismissed }: {
     <p className="scan-snippet">{candidate.snippet}</p>
     <div className="scan-grid">
       <label>Company
-        <input className={company.trim() || destination ? '' : 'empty'} placeholder="Please insert company name" value={company} onChange={(event) => setCompany(event.target.value)} />
+        <input value={company} onChange={(event) => setCompany(event.target.value)} />
       </label>
       <label>Role
-        <input className={role.trim() || destination ? '' : 'empty'} placeholder="please insert role" value={role} onChange={(event) => setRole(event.target.value)} />
+        <input value={role} onChange={(event) => setRole(event.target.value)} />
       </label>
       <label>Status
         <select value={stage} onChange={(event) => setStage(event.target.value)}>{STAGES.map((option) => <option key={option}>{option}</option>)}</select>
