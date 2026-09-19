@@ -40,7 +40,6 @@ export default async function AnalyticsPage() {
       <div><span className="muted">Interview rate</span><strong>{metrics.interviewRate}%</strong></div>
       <div><span className="muted">Offer rate</span><strong>{metrics.offerRate}%</strong></div>
     </div>
-    <p className="footnote">{metrics.responses} meaningful responses · {metrics.interviews} reached interview · {metrics.offers} reached offer · {metrics.eligible} eligible submitted applications</p>
     <div className="analytics-grid">
       <section className="surface"><h2>Applications over time</h2><p className="muted">{rangeLabel}</p><div className="column-chart" role="img" aria-label={buckets.map((bucket) => `${bucketLabel(bucket.start, bucket.end)}: ${bucket.count} applications`).join('; ')}>{buckets.map((bucket) => <div className="chart-column" key={bucket.start}><span>{bucket.count}</span><div className="bar-track"><div style={{ height: `${(bucket.count / max) * 100}%` }}/></div><small>{bucketLabel(bucket.start, bucket.end)}</small></div>)}</div></section>
       <section className="surface"><h2>Current pipeline</h2><p className="muted">Where applications stand today</p><div className="pipeline">{pipeline.map(({ stage, count }) => <div key={stage}><span>{stage}</span><div className="horizontal-track"><div style={{ width: `${apps.length ? (count / apps.length) * 100 : 0}%` }}/></div><strong>{count}</strong></div>)}</div></section>
