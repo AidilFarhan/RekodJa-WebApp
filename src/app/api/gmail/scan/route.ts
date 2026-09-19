@@ -40,7 +40,41 @@ export async function POST(request: NextRequest) {
 
   try {
     const result = await scanGmail(token, (applications ?? []) as ApplicationRecord[]);
-    return NextResponse.json(result);
+
+    /*
+      Persist the review queue so refresh doesn't lose scan results (or
+      re-spend Gmail quota). Review state and confirmed stage are not
+      included in the upsert payload, so a rescan refreshes the data
+      without resetting an existing 'confirmed' or 'dismissed' review.
+    */
+    const payload = result.candidates.map((candidate) => ({
+      user_id: user.id,
+      message_id: candidate.messageId,
+      thread_id: candidate.threadId,
+      email: candidate.email,
+      internal_date_ms: Number(candidate.internalDate) || 0,
+      subject: candidate.subject.slice(0, 500),
+      sender_from: candidate.from.slice(0, 500),
+      sender_email: candidate.sender.slice(0, 320),
+      snippet: candidate.snippet.slice(0, 1600),
+      suggested_company: candidate.suggested.company.slice(0, 200),
+      suggested_role: candidate.suggested.role.slice(0, 200),
+      suggested_status: candidate.suggested.status.slice(0, 20),
+      event_type: candidate.eventType ?? 'stage_observation',
+      matched_application_id: candidate.match?.applicationId ?? null,
+      updated_at: new Date().toISOString(),
+    }));
+
+    let savedCandidates = 0;
+    if (payload.length) {
+      const { error: candidatesError } = await client
+        .from('gmail_scan_candidates')
+        .upsert(payload, { onConflict: 'user_id,message_id' });
+      if (candidatesError) throw new Error('Could not save the scan results.');
+      savedCandidates = payload.length;
+    }
+
+    return NextResponse.json({ ...result, savedCandidates });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'The Gmail scan failed.';
     return NextResponse.json({ error: message }, { status: 502 });
