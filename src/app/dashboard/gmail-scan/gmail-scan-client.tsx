@@ -68,11 +68,12 @@ function toCardCandidate(item: ScanResultCandidate): Candidate {
   };
 }
 
-function ScanCard({ candidate, applications, clientId, onSaved }: {
+function ScanCard({ candidate, applications, clientId, onSaved, onDismissed }: {
   candidate: Candidate;
   applications: ApplicationOption[];
   clientId: string;
   onSaved: (stage: string) => void;
+  onDismissed: () => void;
 }) {
   const [company, setCompany] = useState(candidate.suggested_company || '');
   const [role, setRole] = useState(candidate.suggested_role || '');
@@ -113,6 +114,23 @@ function ScanCard({ candidate, applications, clientId, onSaved }: {
     } finally { setBusy(false); }
   }
 
+  async function dismissCard() {
+    setBusy(true);
+    setFeedback('');
+    try {
+      const response = await fetch('/api/gmail/scan/candidates', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messageId: candidate.message_id, reviewState: 'dismissed' }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Could not dismiss this email.');
+      onDismissed();
+    } catch (error) {
+      setFeedback(error instanceof Error ? error.message : 'Could not dismiss this email.');
+    } finally { setBusy(false); }
+  }
+
   if (candidate.review_state === 'confirmed') {
     return <div className="scan-card scan-done">
       <h3>{candidate.subject || '(No subject)'}</h3>
@@ -142,7 +160,10 @@ function ScanCard({ candidate, applications, clientId, onSaved }: {
         </select>
       </label>
     </div>
-    <button className="button primary" disabled={busy || !company.trim() || !role.trim()} onClick={confirmCard}>{busy ? 'Saving…' : 'Confirm'}</button>
+    <div className="button-row">
+      <button className="button primary" disabled={busy || !company.trim() || !role.trim()} onClick={confirmCard}>{busy ? 'Saving…' : 'Confirm'}</button>
+      <button className="button" disabled={busy} onClick={dismissCard}>Dismiss</button>
+    </div>
     {feedback && <p className={'scan-feedback ' + (feedback.includes('✓') ? 'ok' : feedback.startsWith('Confirmed') ? 'ok' : 'warn')} role="status">{feedback}</p>}
   </div>;
 }
@@ -186,16 +207,17 @@ export default function GmailScanClient({ clientId, applications }: { clientId: 
     }
   }
 
-  const pending = candidates.filter((candidate) => candidate.review_state === 'pending').length;
+  const visible = candidates.filter((candidate) => candidate.review_state !== 'dismissed');
+  const pending = visible.filter((candidate) => candidate.review_state === 'pending').length;
 
   return <div>
     <div className="scan-actions">
       <button className="button primary" disabled={busy} onClick={scan}>{busy ? 'Working…' : 'Scan Gmail (last 45 days)'}</button>
-      {loaded && <p className="muted">{candidates.length ? `${pending} pending · ${candidates.length - pending} confirmed` : 'No saved scan results yet.'}</p>}
+      {loaded && <p className="muted">{visible.length ? `${pending} pending · ${visible.length - pending} confirmed` : 'No saved scan results yet.'}</p>}
     </div>
     {message && <p className="message" role="status">{message}</p>}
     <div className="scan-list">
-      {candidates.map((candidate) => <ScanCard key={candidate.message_id} candidate={candidate} applications={applications} clientId={clientId} onSaved={(stage) => setCandidates((previous) => previous.map((item) => item.message_id === candidate.message_id ? { ...item, review_state: 'confirmed', confirmed_stage: stage } : item))} />)}
+      {visible.map((candidate) => <ScanCard key={candidate.message_id} candidate={candidate} applications={applications} clientId={clientId} onSaved={(stage) => setCandidates((previous) => previous.map((item) => item.message_id === candidate.message_id ? { ...item, review_state: 'confirmed', confirmed_stage: stage } : item))} onDismissed={() => setCandidates((previous) => previous.map((item) => item.message_id === candidate.message_id ? { ...item, review_state: 'dismissed' } : item))} />)}
     </div>
     {scanning && <div className="importing-overlay" role="status" aria-live="polite"><div className="importing-dialog"><img className="cat-img" src="/cat-run.gif" alt="Running cat" /><p>Scanning your Gmail…</p><div className="importing-track" aria-hidden="true"><span/><span/><span/></div></div></div>}
   </div>;
