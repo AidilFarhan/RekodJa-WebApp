@@ -97,8 +97,27 @@ where c.user_id = k.user_id
   and c.id <> k.keep_id;
 
 -- 5. Enforce one connection per account.
-alter table public.sheet_connections
-  drop constraint sheet_connections_user_id_spreadsheet_id_sheet_name_key;
+-- Drop every existing unique constraint on the table first. The composite
+-- (user_id, spreadsheet_id, sheet_name) constraint can carry a different
+-- auto-generated name on databases whose schema predates the migration
+-- file, so resolve the names dynamically instead of hard-coding them.
+do $$
+declare
+  constraint_name text;
+begin
+  for constraint_name in
+    select conname
+    from pg_constraint
+    where conrelid = 'public.sheet_connections'::regclass
+      and contype = 'u'
+  loop
+    execute format(
+      'alter table public.sheet_connections drop constraint %I',
+      constraint_name
+    );
+  end loop;
+end $$;
+
 alter table public.sheet_connections
   add constraint sheet_connections_user_id_key unique (user_id);
 
