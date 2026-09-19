@@ -48,8 +48,8 @@ export async function POST(request: NextRequest) {
   const company = String(body.company ?? '').trim().slice(0, 200);
   const role = String(body.role ?? '').trim().slice(0, 200);
   const stage = stages.includes(body.stage as Stage) ? (body.stage as Stage) : null;
-  if (!messageId || !company || !role || !stage) {
-    return NextResponse.json({ error: 'Message id, company, role and a valid stage are required.' }, { status: 400 });
+  if (!messageId || !stage) {
+    return NextResponse.json({ error: 'Message id and a valid stage are required.' }, { status: 400 });
   }
 
   const { data: candidate, error: candidateError } = await client
@@ -62,6 +62,11 @@ export async function POST(request: NextRequest) {
   if (!candidate) return NextResponse.json({ error: 'This scan result is no longer available. Scan again.' }, { status: 404 });
 
   const requestedApplicationId = body.applicationId ?? candidate.matched_application_id ?? null;
+  // Company and role are only required when creating a new application;
+  // updating an existing one only changes the stage.
+  if (!requestedApplicationId && (!company || !role)) {
+    return NextResponse.json({ error: 'Company and role are required for a new application.' }, { status: 400 });
+  }
   let applicationId: string | null = null;
   let application: ConfirmedApplication | null = null;
   let previousStage: string | null = null;

@@ -84,9 +84,11 @@ function ScanCard({ candidate, applications, clientId, onSaved, onDismissed }: {
   const matched = applications.find((application) => application.id === candidate.matched_application_id);
 
   async function confirmCard() {
-    if (!company.trim() && !role.trim()) { setFeedback('Please insert company name and role.'); return; }
-    if (!company.trim()) { setFeedback('Please insert company name'); return; }
-    if (!role.trim()) { setFeedback('please insert role'); return; }
+    if (!destination) {
+      if (!company.trim() && !role.trim()) { setFeedback('Please insert company name and role.'); return; }
+      if (!company.trim()) { setFeedback('Please insert company name'); return; }
+      if (!role.trim()) { setFeedback('please insert role'); return; }
+    }
     setBusy(true);
     setFeedback('Saving…');
     try {
@@ -134,6 +136,17 @@ function ScanCard({ candidate, applications, clientId, onSaved, onDismissed }: {
     } finally { setBusy(false); }
   }
 
+  function chooseDestination(value: string) {
+    setDestination(value);
+    const chosen = applications.find((application) => application.id === value);
+    if (chosen) {
+      // Updating an existing application: prefill only empty fields so the
+      // card shows the stored data, but never overrides user edits.
+      if (!company.trim()) setCompany(chosen.company);
+      if (!role.trim()) setRole(chosen.role || '');
+    }
+  }
+
   if (candidate.review_state === 'confirmed') {
     return <div className="scan-card scan-done">
       <h3>{candidate.subject || '(No subject)'}</h3>
@@ -148,16 +161,16 @@ function ScanCard({ candidate, applications, clientId, onSaved, onDismissed }: {
     <p className="scan-snippet">{candidate.snippet}</p>
     <div className="scan-grid">
       <label>Company
-        <input className={company.trim() ? '' : 'empty'} placeholder="Please insert company name" value={company} onChange={(event) => setCompany(event.target.value)} />
+        <input className={company.trim() || destination ? '' : 'empty'} placeholder="Please insert company name" value={company} onChange={(event) => setCompany(event.target.value)} />
       </label>
       <label>Role
-        <input className={role.trim() ? '' : 'empty'} placeholder="please insert role" value={role} onChange={(event) => setRole(event.target.value)} />
+        <input className={role.trim() || destination ? '' : 'empty'} placeholder="please insert role" value={role} onChange={(event) => setRole(event.target.value)} />
       </label>
       <label>Status
         <select value={stage} onChange={(event) => setStage(event.target.value)}>{STAGES.map((option) => <option key={option}>{option}</option>)}</select>
       </label>
       <label>Application
-        <select value={destination} onChange={(event) => setDestination(event.target.value)}>
+        <select value={destination} onChange={(event) => chooseDestination(event.target.value)}>
           <option value="">Create new application…</option>
           {applications.map((application) => <option key={application.id} value={application.id}>{application.company} — {application.role || 'No role'}</option>)}
         </select>
