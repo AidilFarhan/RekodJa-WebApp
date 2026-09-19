@@ -174,15 +174,20 @@ export default function GmailScanClient({ clientId, applications }: { clientId: 
   const [message, setMessage] = useState('');
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [loadingCandidates, setLoadingCandidates] = useState(true);
   const router = useRouter();
 
   const loadSaved = useCallback(async () => {
+    setLoadingCandidates(true);
     try {
       const response = await fetch('/api/gmail/scan/candidates');
       const result = await response.json();
       if (response.ok && Array.isArray(result.candidates)) setCandidates(result.candidates);
     } catch { /* leave empty */ }
-    finally { setLoaded(true); }
+    finally {
+      setLoaded(true);
+      setLoadingCandidates(false);
+    }
   }, []);
 
   useEffect(() => { void loadSaved(); }, [loadSaved]);
@@ -220,5 +225,6 @@ export default function GmailScanClient({ clientId, applications }: { clientId: 
       {visible.map((candidate) => <ScanCard key={candidate.message_id} candidate={candidate} applications={applications} clientId={clientId} onSaved={(stage) => setCandidates((previous) => previous.map((item) => item.message_id === candidate.message_id ? { ...item, review_state: 'confirmed', confirmed_stage: stage } : item))} onDismissed={() => setCandidates((previous) => previous.map((item) => item.message_id === candidate.message_id ? { ...item, review_state: 'dismissed' } : item))} />)}
     </div>
     {scanning && <div className="importing-overlay" role="status" aria-live="polite"><div className="importing-dialog"><img className="cat-img" src="/cat-run.gif" alt="Running cat" /><p>Scanning your Gmail…</p><div className="importing-track" aria-hidden="true"><span/><span/><span/></div></div></div>}
+    {loadingCandidates && <div className="importing-overlay" role="status" aria-live="polite"><div className="importing-dialog"><img className="cat-img" src="/cat-run.gif" alt="Running cat" /><p>Loading your scan results…</p><div className="importing-track" aria-hidden="true"><span/><span/><span/></div></div></div>}
   </div>;
 }
