@@ -150,6 +150,7 @@ export default function TrackerSetup({ config, connections }: { config: Config; 
       if (!response.ok) { setBusy(false); return setMessage(result.error || 'Could not save spreadsheet connection.'); }
       connectionId = result.id;
     }
+    if (!connectionId) { setBusy(false); return setMessage('Could not save spreadsheet connection.'); }
     try {
       setImporting(true);
       const importResponse = await fetch(`/api/sheet-connections/${connectionId}/import`, { method: 'POST', headers: { Authorization: `Bearer ${token.current}` } });
