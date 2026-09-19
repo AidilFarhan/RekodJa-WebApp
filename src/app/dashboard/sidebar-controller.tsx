@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 const EDGE_PEEK_PX = 8;
-const HIDE_DELAY_MS = 600;
+const HIDE_DELAY_MS = 700;
 
 export default function SidebarController({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -27,9 +27,9 @@ export default function SidebarController({ children }: { children: React.ReactN
       setOpen(next);
       cancelHide();
       if (next) setCollapsedState(false);
+      else setCollapsedState(true);
     };
     const onMouseMove = (event: MouseEvent) => {
-      if (openRef.current) return;
       const sidebar = document.querySelector('.workspace-sidebar');
       if (!sidebar) return;
       const rect = sidebar.getBoundingClientRect();
@@ -40,7 +40,11 @@ export default function SidebarController({ children }: { children: React.ReactN
       if (event.clientX <= EDGE_PEEK_PX) { cancelHide(); setCollapsedState(false); return; }
       if (!collapsedRef.current) {
         cancelHide();
-        hideTimer = window.setTimeout(() => setCollapsedState(true), HIDE_DELAY_MS);
+        hideTimer = window.setTimeout(() => {
+          openRef.current = false;
+          setOpen(false);
+          setCollapsedState(true);
+        }, HIDE_DELAY_MS);
       }
     };
     window.addEventListener('mousemove', onMouseMove);
