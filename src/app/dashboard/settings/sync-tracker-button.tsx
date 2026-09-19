@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import RemovalsConfirm, { type Removal } from '@/components/removals-confirm';
 
 const DRIVE_FILE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
 
@@ -55,6 +56,8 @@ export default function SyncTrackerButton({ connectionId, clientId }: { connecti
   const token = useRef('');
   const [busy, setBusy] = useState(false);
   const [popup, setPopup] = useState<{ title: string; notes: string[] } | null>(null);
+  const [removals, setRemovals] = useState<Removal[] | null>(null);
+  const [pendingTitle, setPendingTitle] = useState('');
   const router = useRouter();
   async function sync() {
     setBusy(true);
@@ -64,15 +67,25 @@ export default function SyncTrackerButton({ connectionId, clientId }: { connecti
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'Sync failed.');
       const { counts, notes } = summary(result);
-      setPopup({ title: `Synced — ${counts}.`, notes });
+      if (result.removals && result.removals.length > 0) {
+        setPendingTitle(`Synced — ${counts}.`);
+        setRemovals(result.removals);
+      } else {
+        setPopup({ title: `Synced — ${counts}.`, notes });
+      }
       router.refresh();
     } catch (error) {
       setPopup({ title: error instanceof Error ? error.message : 'Sync failed.', notes: [] });
     } finally { setBusy(false); }
   }
+  function finishRemovals(removed: number) {
+    setRemovals(null);
+    setPopup({ title: `${pendingTitle} ${removed > 0 ? `Removed ${removed} from your tracker.` : 'Nothing was removed.'}`, notes: [] });
+  }
   return <div className="sync-row">
     <button className="button" disabled={busy} onClick={sync}>{busy ? 'Syncing…' : 'Sync now'}</button>
     {busy && <div className="importing-overlay" role="status" aria-live="polite"><div className="importing-dialog"><img className="cat-img" src="/cat-run.gif" alt="Running cat" /><p>Syncing your tracker…</p><div className="importing-track" aria-hidden="true"><span/><span/><span/></div></div></div>}
-    {popup && !busy && <div className="importing-overlay" role="dialog" aria-modal="true"><div className="importing-dialog sync-dialog"><p className="popup-title">{popup.title}</p>{popup.notes.length > 0 && <ul className="sync-notes">{popup.notes.map((note) => <li key={note}>{note}</li>)}</ul>}<button className="button" onClick={() => setPopup(null)}>Close</button></div></div>}
+    {removals && !busy && <RemovalsConfirm connectionId={connectionId} removals={removals} onDone={finishRemovals} />}
+    {popup && !busy && !removals && <div className="importing-overlay" role="dialog" aria-modal="true"><div className="importing-dialog sync-dialog"><p className="popup-title">{popup.title}</p>{popup.notes.length > 0 && <ul className="sync-notes">{popup.notes.map((note) => <li key={note}>{note}</li>)}</ul>}<button className="button" onClick={() => setPopup(null)}>Close</button></div></div>}
   </div>;
 }

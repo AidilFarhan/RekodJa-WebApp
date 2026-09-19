@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
-import { parseSheetRows } from '@/lib/sheets/import';
+import { parseSheetRows, normalizeUrl } from '@/lib/sheets/import';
 
 export const runtime = 'nodejs';
 
@@ -44,5 +44,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   if (issues.length) {
     await client.from('import_issues').insert(issues.map((message) => ({ sheet_connection_id: id, user_id: user.id, message })));
   }
-  return NextResponse.json({ created, updated, stageChanged, skipped: parsed.errors.length, skippedDetails: parsed.errors, warnings: parsed.warnings });
+  // Detect applications whose sheet row was deleted: present in the tracker but
+  // neither their import key nor their job URL appears in the sheet anymore.
+  const sheetKeys = new Set(parsed.rows.map((row) => row.importKey));
+  const sheetUrls = new Set(parsed.jobUrls);
+  const { data: existing } = await client.from('applications').select('id, company, role, job_url, import_key').eq('sheet_connection_id', id);
+  const removals = (existing ?? [])
+    .filter((application) => !sheetKeys.has(application.import_key) && (!application.job_url || !sheetUrls.has(normalizeUrl(application.job_url))))
+    .map((application) => ({ id: application.id, company: application.company, role: application.role }));
+  return NextResponse.json({ created, updated, stageChanged, skipped: parsed.errors.length, skippedDetails: parsed.errors, warnings: parsed.warnings, removals });
 }
