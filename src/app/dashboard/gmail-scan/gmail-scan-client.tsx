@@ -29,14 +29,53 @@ type Candidate = {
 
 const STAGES = ['Applied', 'Interview', 'Offer', 'Rejected', 'Ghosted', 'Withdrawn'];
 
+type ScanResultCandidate = {
+  email: string;
+  messageId: string;
+  threadId: string;
+  internalDate: string;
+  threadLink: string;
+  subject: string;
+  from: string;
+  snippet: string;
+  sender: string;
+  suggested: { company: string; role: string; status: string };
+  match: { applicationId: string; company: string } | null;
+  eventType: string | null;
+};
+
+// The scan route returns camelCase candidates; the review UI (and the
+// candidates GET route) use the DB row shape. Map once after a scan.
+function toCardCandidate(item: ScanResultCandidate): Candidate {
+  return {
+    id: item.messageId,
+    message_id: item.messageId,
+    thread_id: item.threadId,
+    email: item.email,
+    internal_date_ms: Number(item.internalDate) || 0,
+    subject: item.subject,
+    sender_from: item.from,
+    sender_email: item.sender,
+    snippet: item.snippet,
+    suggested_company: item.suggested.company,
+    suggested_role: item.suggested.role,
+    suggested_status: item.suggested.status,
+    event_type: item.eventType ?? 'stage_observation',
+    matched_application_id: item.match?.applicationId ?? null,
+    review_state: 'pending',
+    confirmed_stage: null,
+    created_at: new Date().toISOString(),
+  };
+}
+
 function ScanCard({ candidate, applications, clientId, onSaved }: {
   candidate: Candidate;
   applications: ApplicationOption[];
   clientId: string;
-  onSaved: () => void;
+  onSaved: (stage: string) => void;
 }) {
-  const [company, setCompany] = useState(candidate.suggested_company);
-  const [role, setRole] = useState(candidate.suggested_role);
+  const [company, setCompany] = useState(candidate.suggested_company || '');
+  const [role, setRole] = useState(candidate.suggested_role || '');
   const [stage, setStage] = useState(STAGES.includes(candidate.suggested_status) ? candidate.suggested_status : 'Applied');
   const [destination, setDestination] = useState(candidate.matched_application_id ?? '');
   const [busy, setBusy] = useState(false);
@@ -68,7 +107,7 @@ function ScanCard({ candidate, applications, clientId, onSaved }: {
       if (!response.ok) throw new Error(result.error || 'Could not confirm this email.');
       const sheetNote = result.sheet?.synced ? ' Google Sheet updated ✓' : result.sheet ? ` Google Sheet not updated: ${result.sheet.message ?? ''}` : '';
       setFeedback(`Confirmed as ${result.stage}.${sheetNote}`);
-      onSaved();
+      onSaved(result.stage ?? stage);
     } catch (error) {
       setFeedback(error instanceof Error ? error.message : 'Could not confirm this email.');
     } finally { setBusy(false); }
@@ -137,7 +176,7 @@ export default function GmailScanClient({ clientId, applications }: { clientId: 
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'The scan failed.');
       setMessage(`${result.email}: ${result.scanned} emails read, ${result.skipped} unrelated skipped, ${result.candidates.length} candidate(s) found.`);
-      setCandidates(result.candidates);
+      setCandidates((result.candidates as ScanResultCandidate[]).map(toCardCandidate));
       router.refresh();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'The scan failed.');
@@ -156,7 +195,7 @@ export default function GmailScanClient({ clientId, applications }: { clientId: 
     </div>
     {message && <p className="message" role="status">{message}</p>}
     <div className="scan-list">
-      {candidates.map((candidate) => <ScanCard key={candidate.message_id} candidate={candidate} applications={applications} clientId={clientId} onSaved={() => setCandidates((previous) => previous.map((item) => item.message_id === candidate.message_id ? { ...item, review_state: 'confirmed', confirmed_stage: STAGES[0] } : item))} />)}
+      {candidates.map((candidate) => <ScanCard key={candidate.message_id} candidate={candidate} applications={applications} clientId={clientId} onSaved={(stage) => setCandidates((previous) => previous.map((item) => item.message_id === candidate.message_id ? { ...item, review_state: 'confirmed', confirmed_stage: stage } : item))} />)}
     </div>
     {scanning && <div className="importing-overlay" role="status" aria-live="polite"><div className="importing-dialog"><img className="cat-img" src="/cat-run.gif" alt="Running cat" /><p>Scanning your Gmail…</p><div className="importing-track" aria-hidden="true"><span/><span/><span/></div></div></div>}
   </div>;
