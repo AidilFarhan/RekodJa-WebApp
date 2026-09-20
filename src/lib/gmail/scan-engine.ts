@@ -133,7 +133,10 @@ export async function scanGmail(token: string, applications: ApplicationRecord[]
       const details = suggestKnownCompany(extractEmailDetails(subject, text, from), subject + '\n' + text + '\n' + from, applications);
       const link = `https://mail.google.com/mail/?authuser=${encodeURIComponent(email)}#all/${message.threadId}`;
       const matches = matchApplications(applications, details.company, link);
-      const eventType: ScanCandidate['eventType'] = ['Rejected', 'Offer', 'Interview'].includes(classifyEmail(subject, text)) ? 'employer_response' : 'stage_observation';
+      const status = classifyEmail(subject, text);
+      // Only surface emails that matched one of the keyword rules.
+      if (!status) { skipped += 1; continue; }
+      const eventType: ScanCandidate['eventType'] = ['Rejected', 'Offer', 'Interview'].includes(status) ? 'employer_response' : 'stage_observation';
       const candidate: ScanCandidate = {
         email,
         messageId: message.id,
@@ -144,7 +147,7 @@ export async function scanGmail(token: string, applications: ApplicationRecord[]
         from,
         snippet: text,
         sender: details.sender,
-        suggested: { company: details.company, role: details.role, status: classifyEmail(subject, text) },
+        suggested: { company: details.company, role: details.role, status },
         match: matches.length === 1 ? { applicationId: matches[0].id, company: matches[0].company } : null,
         eventType: matches.length ? eventType : null,
       };

@@ -1,4 +1,4 @@
-export type Stage = 'Applied' | 'Interview' | 'Offer' | 'Rejected' | 'Ghosted' | 'Withdrawn';
+export type Stage = 'Applied' | 'Interview' | 'Offer' | 'Rejected' | 'Ghosted' | 'Withdrawn' | 'Replied';
 
 export type DashboardApplication = {
   id: string;
@@ -21,7 +21,7 @@ export type DashboardEvent = {
   occurred_at: string;
 };
 
-export const stages: Stage[] = ['Applied', 'Interview', 'Offer', 'Rejected', 'Ghosted', 'Withdrawn'];
+export const stages: Stage[] = ['Applied', 'Interview', 'Offer', 'Rejected', 'Ghosted', 'Withdrawn', 'Replied'];
 
 export function filterApplications(applications: DashboardApplication[], stage: string, source: string) {
   return applications.filter((application) =>

@@ -28,7 +28,7 @@ export type GmailMessage = {
   payload?: GmailPayload & { headers?: GmailHeader[] };
 };
 
-export type EmailStage = '' | 'Applied' | 'Interview' | 'Offer' | 'Rejected';
+export type EmailStage = '' | 'Applied' | 'Interview' | 'Offer' | 'Rejected' | 'Ghosted' | 'Replied';
 
 export type ExtractedEmailDetails = { company: string; role: string; sender: string };
 
@@ -38,10 +38,13 @@ export type ApplicationRecord = { id: string; company: string; role?: string; jo
 export function classifyEmail(subject: string, snippet: string): EmailStage {
   const text = subject + '\n' + snippet;
   if (!isApplicationEmail(subject, snippet)) return '';
-  if (/\bregret(?:fully)?\b.{0,160}(?:inform|advise|application|unable|cannot|not |unsuccessful)|not (?:be )?moving forward|not been successful|unsuccessful|not (?:been )?selected|unable to (?:offer|proceed)|decided (?:not to|to (?:proceed|move forward) with (?:other|another))|has expired and is no longer taking applications|we have already chosen another candidate for the position|dukacita|tidak berjaya/i.test(text)) return 'Rejected';
-  if (/pleased to offer you|offer (?:you|of) (?:employment|the (?:position|role))|your (?:job|employment) offer|(?:job|employment) offer\s*[:–—-]|tawaran (?:jawatan|pekerjaan)/i.test(text)) return 'Offer';
+  // Expired posting that never responded -> the employer ghosted us.
+  if (/\bexpired\b.{0,120}\bno longer taking applications\b|no longer taking applications/i.test(text)) return 'Ghosted';
+  if (/\bregret(?:fully)?\b.{0,160}(?:inform|advise|application|unable|cannot|not |unsuccessful)|not (?:be )?moving forward|not been successful|unsuccessful|not (?:been )?selected|unable to (?:offer|proceed)|decided (?:not to|to (?:proceed|move forward) with (?:other|another))|not move your application forward|not to proceed further with your application|decided to move forward with candidates|we have already chosen another candidate for the position|dukacita|tidak berjaya/i.test(text)) return 'Rejected';
+  if (/pleased to offer(?: you)?|offer (?:you|of) (?:employment|the (?:position|role))|your (?:job|employment) offer|(?:job|employment) offer\s*[:–—-]|tawaran (?:jawatan|pekerjaan)/i.test(text)) return 'Offer';
   if (/interview (?:invitation|scheduled|confirmation)|invit(?:e|ing|ation).{0,80}interview|interview for|schedule.{0,40}interview|temu duga|temuduga/i.test(text)) return 'Interview';
   if (/application (received|submitted)|received your application|thank you for (applying|your application)|thanks for applying|permohonan.*diterima/i.test(text)) return 'Applied';
+  if (/reach out|confirmation/i.test(text)) return 'Replied';
   return '';
 }
 

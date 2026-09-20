@@ -50,6 +50,7 @@ test('analytics helpers: buckets, pipeline and source performance', async () => 
     { stage: 'Applied', count: 2 }, { stage: 'Interview', count: 1 },
     { stage: 'Offer', count: 0 }, { stage: 'Rejected', count: 0 },
     { stage: 'Ghosted', count: 0 }, { stage: 'Withdrawn', count: 0 },
+    { stage: 'Replied', count: 0 },
   ]);
   const performance = module.sourcePerformance(analyticsApps, analyticsEvents);
   assert.equal(performance.length, 2);

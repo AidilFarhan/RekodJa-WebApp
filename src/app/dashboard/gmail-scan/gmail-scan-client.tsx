@@ -27,7 +27,14 @@ type Candidate = {
   created_at: string;
 };
 
-const STAGES = ['Applied', 'Interview', 'Offer', 'Rejected', 'Ghosted', 'Withdrawn'];
+const STAGES = ['Applied', 'Interview', 'Offer', 'Rejected', 'Ghosted', 'Withdrawn', 'Replied'];
+
+// Gmail internalDate is an epoch in ms. Format in the browser's local time
+// so the date matches what the user sees in the Gmail header.
+function emailDate(ms: number) {
+  const date = new Date(ms);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
 
 type ScanResultCandidate = {
   email: string;
@@ -106,7 +113,7 @@ function ScanCard({ candidate, applications, clientId, onSaved, onDismissed }: {
           role,
           stage,
           threadLink: `https://mail.google.com/mail/?authuser=${encodeURIComponent(candidate.email)}#all/${candidate.thread_id}`,
-          dateApplied: new Date(candidate.internal_date_ms).toISOString().slice(0, 10),
+          dateApplied: emailDate(candidate.internal_date_ms),
         }),
       });
       const result = await response.json();

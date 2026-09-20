@@ -96,7 +96,7 @@ test('keeps only the latest message per thread', async () => {
     ['https://gmail.googleapis.com/gmail/v1/users/me/profile', profile],
     ['https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=50', { messages: [{ id: 'm1', threadId: 't1' }, { id: 'm2', threadId: 't1' }], nextPageToken: undefined }],
     ['https://gmail.googleapis.com/gmail/v1/users/me/messages/m1', applicationMessage('m1', 't1', '1000', 'Thank you for applying', 'Thank you for applying for the Engineer role at Acme.')],
-    ['https://gmail.googleapis.com/gmail/v1/users/me/messages/m2', applicationMessage('m2', 't1', '2000', 'Your application update', 'Your application status has been updated.')],
+    ['https://gmail.googleapis.com/gmail/v1/users/me/messages/m2', applicationMessage('m2', 't1', '2000', 'Your application', 'We received your application.')],
   ];
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url) => {
@@ -111,9 +111,20 @@ test('keeps only the latest message per thread', async () => {
   } finally { globalThis.fetch = originalFetch; }
 });
 
-test('classifies expired-position and other-candidate wording as rejected', () => {
-  assert.equal(classifyEmail('Update on your application', 'This job posting has expired and is no longer taking applications.'), 'Rejected');
+test('classifies expired postings as ghosted and other-candidate wording as rejected', () => {
+  assert.equal(classifyEmail('Update on your application', 'This job posting has expired and is no longer taking applications.'), 'Ghosted');
   assert.equal(classifyEmail('Your application', 'We have already chosen another candidate for the position.'), 'Rejected');
+});
+
+test('maps content keywords to suggested stages', () => {
+  assert.equal(classifyEmail('Your application', 'Thank you, we received your application.'), 'Applied');
+  assert.equal(classifyEmail('Your application', 'We regret to inform you about your application.'), 'Rejected');
+  assert.equal(classifyEmail('Your application', 'We are not to proceed further with your application.'), 'Rejected');
+  assert.equal(classifyEmail('Your application', 'We have decided to move forward with candidates.'), 'Rejected');
+  assert.equal(classifyEmail('Your application', 'We are pleased to offer you the position.'), 'Offer');
+  assert.equal(classifyEmail('Your application', 'We would like to invite you to an interview.'), 'Interview');
+  assert.equal(classifyEmail('Your application', 'We want to reach out regarding next steps.'), 'Replied');
+  assert.equal(classifyEmail('Your application', 'Please reply with confirmation of your availability.'), 'Replied');
 });
 
 test('excludes SDK, OAuth verification and promotional campaign emails', () => {
@@ -131,6 +142,26 @@ test('ignores JobStreet/Indeed successfully-submitted auto-confirmations', () =>
 test('scan window is the last 45 days', () => {
   assert.match(GMAIL_SEARCH_QUERY, /newer_than:45d/);
   assert.doesNotMatch(GMAIL_SEARCH_QUERY, /newer_than:3m/);
+});
+
+test('skips application emails that match no keyword rule', async () => {
+  const responses = [
+    ['https://gmail.googleapis.com/gmail/v1/users/me/profile', profile],
+    ['https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=50', { messages: [{ id: 'k1', threadId: 't1' }], nextPageToken: undefined }],
+    ['https://gmail.googleapis.com/gmail/v1/users/me/messages/k1', applicationMessage('k1', 't1', '100', 'Your application', 'We will keep you posted about your application.')],
+  ];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    const found = responses.find(([prefix]) => String(url).startsWith(prefix));
+    assert.ok(found, 'unexpected request: ' + url);
+    return response(found[1]);
+  };
+  try {
+    const result = await scanGmail('token', applications, email);
+    assert.equal(result.scanned, 1);
+    assert.equal(result.skipped, 1);
+    assert.equal(result.candidates.length, 0);
+  } finally { globalThis.fetch = originalFetch; }
 });
 
 test('retries a rate-limited list request and succeeds', async () => {
