@@ -42,13 +42,18 @@ export async function POST(request: NextRequest) {
     sender?: string;
     threadLink?: string;
     dateApplied?: string;
+    createOnly?: boolean;
   };
 
   const messageId = String(body.messageId ?? '').trim();
   const company = String(body.company ?? '').trim().slice(0, 200);
   const role = String(body.role ?? '').trim().slice(0, 200);
+  const createOnly = body.createOnly === true;
   const stage = stages.includes(body.stage as Stage) ? (body.stage as Stage) : null;
-  if (!messageId || !stage) {
+  if (!messageId) {
+    return NextResponse.json({ error: 'Message id is required.' }, { status: 400 });
+  }
+  if (!createOnly && !stage) {
     return NextResponse.json({ error: 'Message id and a valid stage are required.' }, { status: 400 });
   }
 
@@ -60,6 +65,39 @@ export async function POST(request: NextRequest) {
     .maybeSingle();
   if (candidateError) return NextResponse.json({ error: 'Could not load the scan result.' }, { status: 500 });
   if (!candidate) return NextResponse.json({ error: 'This scan result is no longer available. Scan again.' }, { status: 404 });
+
+  /*
+   * Two-step unmatched flow: createOnly only creates the application
+   * (stage 'Applied', no event, no sheet write). The suggested stage is
+   * then confirmed in a separate, deliberate confirm call.
+   */
+  if (createOnly) {
+    if (!company || !role) {
+      return NextResponse.json({ error: 'Company and role are required for a new application.' }, { status: 400 });
+    }
+    const dateApplied = /^\d{4}-\d{2}-\d{2}$/.test(String(body.dateApplied ?? '')) ? body.dateApplied : null;
+    const { data: created, error: createError } = await client
+      .from('applications')
+      .insert({
+        user_id: user.id,
+        company,
+        role,
+        stage: 'Applied',
+        source: 'Other',
+        job_url: String(body.threadLink ?? '').slice(0, 2048),
+        date_applied: dateApplied,
+      })
+      .select('id')
+      .single();
+    if (createError || !created) {
+      return NextResponse.json({ error: 'Could not create the application.' }, { status: 400 });
+    }
+    return NextResponse.json({ ok: true, created: true, id: created.id });
+  }
+
+  if (!stage) {
+    return NextResponse.json({ error: 'Message id and a valid stage are required.' }, { status: 400 });
+  }
 
   const requestedApplicationId = body.applicationId ?? candidate.matched_application_id ?? null;
   // Company and role are only required when creating a new application;

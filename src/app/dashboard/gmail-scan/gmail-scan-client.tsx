@@ -98,9 +98,8 @@ function ScanCard({ candidate, applications, clientId, onSaved, onDismissed }: {
 
   async function confirmCard() {
     if (!destination) {
-      if (!company.trim() && !role.trim()) { setFeedback('Please insert company name and role.'); return; }
-      if (!company.trim()) { setFeedback('Please insert company name'); return; }
-      if (!role.trim()) { setFeedback('please insert role'); return; }
+      setFeedback('Select an existing application or create one first.');
+      return;
     }
     setBusy(true);
     setFeedback('Saving…');
@@ -130,6 +129,38 @@ function ScanCard({ candidate, applications, clientId, onSaved, onDismissed }: {
     } catch (error) {
       setFeedback(error instanceof Error ? error.message : 'Could not confirm this email.');
     } finally { setBusy(false); }
+  }
+
+  async function createApplication() {
+    if (!company.trim() || !role.trim()) {
+      setFeedback('Company and role are required to create the application.');
+      return;
+    }
+    setBusy(true);
+    setFeedback('Creating application…');
+    try {
+      const response = await fetch('/api/gmail/scan/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messageId: candidate.message_id,
+          createOnly: true,
+          company,
+          role,
+          threadLink: `https://mail.google.com/mail/?authuser=${encodeURIComponent(candidate.email)}#all/${candidate.thread_id}`,
+          dateApplied: emailDate(candidate.internal_date_ms),
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Could not create the application.');
+      setDestination(result.id);
+      setApplicationText(`${company.trim()} — ${role.trim()}`);
+      setFeedback('Application created — now confirm the suggested stage.');
+    } catch (error) {
+      setFeedback(error instanceof Error ? error.message : 'Could not create the application.');
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function dismissCard() {
@@ -200,7 +231,10 @@ function ScanCard({ candidate, applications, clientId, onSaved, onDismissed }: {
       </label>
     </div>
     <div className="button-row">
-      <button className="button primary" disabled={busy} onClick={confirmCard}>{busy ? 'Saving…' : 'Confirm'}</button>
+      {destination
+        ? <button className="button primary" disabled={busy} onClick={confirmCard}>{busy ? 'Saving…' : 'Confirm stage'}</button>
+        : <button className="button primary" disabled={busy || !company.trim() || !role.trim()} onClick={createApplication}>{busy ? 'Saving…' : 'Create application'}</button>}
+      {!destination && <span className="scan-step-hint">Match to an application first — then confirm the stage separately.</span>}
       <button className="button" disabled={busy} onClick={dismissCard}>Dismiss</button>
     </div>
     {feedback && <p className={'scan-feedback ' + (feedback.includes('✓') ? 'ok' : feedback.startsWith('Confirmed') ? 'ok' : 'warn')} role="status">{feedback}</p>}

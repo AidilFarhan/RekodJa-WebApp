@@ -203,4 +203,5 @@ body:has(.workspace)>main{margin:0;padding:0;max-width:none}
 .scan-suggestions button:hover{background:#f0f2f5}
 .scan-suggestions .empty{padding:8px 10px;font-size:11px;color:#626976;margin:0}
 .scan-confirmed{font-size:12px;color:#2c6e49;margin:8px 0 0}
-.scan-done{opacity:.85}
+.scan-done{border-color:#cfe6d4;background:#f2faf4;opacity:.92}
+.scan-step-hint{font-size:11px;color:#626976}
