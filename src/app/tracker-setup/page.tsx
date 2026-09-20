@@ -24,7 +24,7 @@ export default async function TrackerSetupPage({ searchParams }: { searchParams:
   const accountView = params.view === 'onboarding';
   return <section className="onboarding-page">
     <div className="onboarding-skip-row"><a className="onboarding-skip" href="/dashboard/overview">Skip setup for now →</a></div>
-    <p className="eyebrow">WELCOME TO JOB TRACKER</p>
+    <p className="eyebrow">WELCOME TO REKODJA</p>
     <h1>View your application with ease</h1>
     {accountView ? <div className="onboarding-card">
       <p className="onboarding-card-eyebrow">Account</p>

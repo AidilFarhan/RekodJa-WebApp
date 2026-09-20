@@ -52,7 +52,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       <section>
         <div>
           <h2>Plan</h2>
-          <p>Job Tracker Free</p>
+          <p>RekodJa Free</p>
           <p className="muted">Pro plans are not available yet.</p>
         </div>
       </section>
