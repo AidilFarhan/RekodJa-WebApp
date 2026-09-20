@@ -122,6 +122,12 @@ test('excludes SDK, OAuth verification and promotional campaign emails', () => {
   assert.equal(isApplicationEmail('JOM SERTAI KEMPEN SPEND BONANZA!', 'Kempen perbelanjaan hebat menanti anda.'), false);
 });
 
+test('ignores JobStreet/Indeed successfully-submitted auto-confirmations', () => {
+  assert.equal(isApplicationEmail('Application received', 'Your application has been successfully submitted.', 'Jobstreet Applications <noreply@jobstreet.com>'), false);
+  assert.equal(isApplicationEmail('Application received', 'Your application has been successfully submitted.', 'Indeed <noreply@indeed.com>'), false);
+  assert.equal(isApplicationEmail('Application received', 'Your application has been successfully submitted.', 'Acme Careers <recruiter@acme.com>'), true);
+});
+
 test('scan window is the last 45 days', () => {
   assert.match(GMAIL_SEARCH_QUERY, /newer_than:45d/);
   assert.doesNotMatch(GMAIL_SEARCH_QUERY, /newer_than:3m/);

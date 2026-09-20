@@ -128,7 +128,7 @@ export async function scanGmail(token: string, applications: ApplicationRecord[]
       const subject = header('subject');
       const from = header('from');
       const text = currentEmailText(message);
-      if (!isApplicationEmail(subject, text)) { skipped += 1; continue; }
+      if (!isApplicationEmail(subject, text, from)) { skipped += 1; continue; }
 
       const details = suggestKnownCompany(extractEmailDetails(subject, text, from), subject + '\n' + text + '\n' + from, applications);
       const link = `https://mail.google.com/mail/?authuser=${encodeURIComponent(email)}#all/${message.threadId}`;
