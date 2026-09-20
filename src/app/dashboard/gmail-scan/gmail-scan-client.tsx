@@ -89,6 +89,12 @@ function ScanCard({ candidate, applications, clientId, onSaved, onDismissed }: {
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState('');
   const matched = applications.find((application) => application.id === candidate.matched_application_id);
+  const [applicationText, setApplicationText] = useState(matched ? `${matched.company} — ${matched.role || 'No role'}` : '');
+  const [showMatches, setShowMatches] = useState(false);
+  const query = applicationText.trim().toLowerCase();
+  const matching = query
+    ? applications.filter((application) => `${application.company} ${application.role || ''}`.toLowerCase().includes(query))
+    : applications;
 
   async function confirmCard() {
     if (!destination) {
@@ -177,10 +183,20 @@ function ScanCard({ candidate, applications, clientId, onSaved, onDismissed }: {
         <select value={stage} onChange={(event) => setStage(event.target.value)}>{STAGES.map((option) => <option key={option}>{option}</option>)}</select>
       </label>
       <label>Application
-        <select value={destination} onChange={(event) => chooseDestination(event.target.value)}>
-          <option value="">Create new application…</option>
-          {applications.map((application) => <option key={application.id} value={application.id}>{application.company} — {application.role || 'No role'}</option>)}
-        </select>
+        <div className="scan-combobox">
+          <input
+            value={applicationText}
+            placeholder="Create new application or search existing…"
+            onChange={(event) => { setApplicationText(event.target.value); setDestination(''); setShowMatches(true); }}
+            onFocus={() => setShowMatches(true)}
+            onBlur={() => window.setTimeout(() => setShowMatches(false), 150)}
+          />
+          {showMatches && <div className="scan-suggestions">
+            {matching.length
+              ? matching.map((application) => <button type="button" key={application.id} onMouseDown={(event) => { event.preventDefault(); chooseDestination(application.id); setApplicationText(`${application.company} — ${application.role || 'No role'}`); setShowMatches(false); }}>{application.company} — {application.role || 'No role'}</button>)
+              : <p className="empty">No existing match — a new application will be created.</p>}
+          </div>}
+        </div>
       </label>
     </div>
     <div className="button-row">
