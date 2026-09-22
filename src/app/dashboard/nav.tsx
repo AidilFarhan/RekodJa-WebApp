@@ -17,6 +17,6 @@ export default function WorkspaceNav({ actionsCount = 0 }: { actionsCount?: numb
     <Link href="/dashboard/actions" aria-current={onActions ? 'page' : undefined}>✦　 Actions{actionsCount > 0 && <span className="nav-count">{actionsCount}</span>}</Link>
     <Link href="/dashboard/gmail-scan" aria-current={onGmailScan ? 'page' : undefined}>✉　 Gmail Scan</Link>
     <Link href="/dashboard/analytics" aria-current={onAnalytics ? 'page' : undefined}>▦　 Analytics</Link>
-    <a href="https://jobtracker.aidilfarhanjassim.online/" target="_blank" rel="noreferrer" onClick={(event) => { if (!window.confirm('Open the RekodJa extension website?')) event.preventDefault(); }}>✚　 Extension</a>
+    <a href="https://rekodja.com/" target="_blank" rel="noreferrer" onClick={(event) => { if (!window.confirm('Open the RekodJa extension website?')) event.preventDefault(); }}>✚　 Extension</a>
   </nav>;
 }
