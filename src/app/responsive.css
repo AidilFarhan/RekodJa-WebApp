@@ -1,3 +1,5 @@
+/* No surface should ever scroll the page sideways on a phone. */
+html, body { max-width: 100%; overflow-x: hidden; }
 /* Let the workspace use the available screen width. */
 main { width: 100%; max-width: none; margin: 32px auto; padding: 0 clamp(16px, 3vw, 48px); min-width: 0; }
 main > section { min-width: 0; }
