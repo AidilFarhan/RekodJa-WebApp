@@ -1,7 +1,7 @@
 import { signIn } from '../actions';
 import { CircuitBoard } from '@/components/ui/circuit-board';
 import { TextMorph } from '@/components/ui/text-morph';
-import { Cloud, Database, Server, Shield } from 'lucide-react';
+import { Globe, Monitor, Puzzle, Table2 } from 'lucide-react';
 export default async function SignIn({ searchParams }: { searchParams: Promise<{ error?: string; deleted?: string; reason?: string }> }) {
   const { error, deleted, reason } = await searchParams;
   return <section className="sign-in-page">
@@ -18,10 +18,10 @@ export default async function SignIn({ searchParams }: { searchParams: Promise<{
     </div>
     <CircuitBoard
       nodes={[
-        { id: 'start', x: 80, y: 150, label: 'Job Website', icon: <Cloud size={16} /> },
-        { id: 'process', x: 250, y: 80, label: 'RekodJa: Extension', icon: <Server size={16} /> },
-        { id: 'validate', x: 420, y: 80, label: 'Spreadsheet', icon: <Shield size={16} /> },
-        { id: 'end', x: 620, y: 150, label: 'RekodJa: WebApp', icon: <Database size={16} /> },
+        { id: 'start', x: 80, y: 80, label: 'Job Website', icon: <Globe size={16} /> },
+        { id: 'process', x: 250, y: 80, label: 'RekodJa: Extension', icon: <Puzzle size={16} /> },
+        { id: 'validate', x: 420, y: 80, label: 'Spreadsheet', icon: <Table2 size={16} /> },
+        { id: 'end', x: 620, y: 80, label: 'RekodJa: WebApp', icon: <Monitor size={16} /> },
       ]}
       connections={[
         { from: 'start', to: 'process', animated: true },
