@@ -282,4 +282,10 @@ html[data-theme=dark] .horizontal-track{background:#26354a}html[data-theme=dark]
 html[data-theme=dark] .notification-panel,html[data-theme=dark] .scan-suggestions,html[data-theme=dark] .sync-dialog{background:#0b0b0b;border-color:#3a3a3a;color:#f4f4f4;box-shadow:0 14px 34px rgba(0,0,0,.55)}
 html[data-theme=dark] .notification-list li{border-color:#303030;color:#e0e0e0}html[data-theme=dark] .notification-list .dismiss{color:#bdbdbd}
 html[data-theme=dark] .message{background:#1c2a40;color:#dbeafe}
+html[data-theme=dark] .settings-page{background:#050505;color:#f4f4f4}
+html[data-theme=dark] .settings-sections>section{background:#080808;color:#f4f4f4}
+html[data-theme=dark] .settings-sections h2,html[data-theme=dark] .settings-sections strong{color:#f4f4f4}
+html[data-theme=dark] .settings-sections p,html[data-theme=dark] .settings-sections .muted{color:#c0cbd8}
+html[data-theme=dark] .settings-sections .subtle-tag{color:#d5dbe3;border-color:#555;background:#151515}
+html[data-theme=dark] .settings-sections .button{background:#151515;color:#f7f7f7;border-color:#595959}
 html[data-theme=dark] .rate-metric-value,html[data-theme=dark] .rate-metric-value text{color:#fff;fill:#fff}
