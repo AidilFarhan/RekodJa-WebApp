@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     const client = createServerClient(url, key, {
       cookieOptions: { httpOnly: true, sameSite: 'lax', secure: appUrl.startsWith('https://') },
       cookies: {
-        getAll: () => jar.getAll(),
+        getAll: () => [...jar.getAll(), ...pending.values()],
         setAll: (values) => values.forEach((cookie) => pending.set(cookie.name, cookie)),
       },
     });
