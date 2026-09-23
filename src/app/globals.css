@@ -24,3 +24,13 @@ html[data-theme=dark] .importing-overlay{background:rgba(0,0,0,.72)}
 html[data-theme=dark] .importing-dialog{background:#080808;border-color:#383838;box-shadow:0 14px 34px rgba(0,0,0,.65)}
 html[data-theme=dark] .importing-dialog p,html[data-theme=dark] .popup-title{color:#f2f2f2}
 html[data-theme=dark] .importing-track span{background:#a8a8a8}
+
+/* Keep account, sign-in and setup screens on the same charcoal palette as the workspace. */
+html[data-theme=dark] body:not(:has(.workspace)){background:#050505;color:#f2f2f2}
+html[data-theme=dark] body:not(:has(.workspace))>header{background:#080808;border-color:#303030}
+html[data-theme=dark] body:not(:has(.workspace)) main>section{background:#080808;border-color:#303030}
+html[data-theme=dark] body:not(:has(.workspace)) input,html[data-theme=dark] body:not(:has(.workspace)) select,html[data-theme=dark] body:not(:has(.workspace)) textarea{background:#0b0b0b;border-color:#3a3a3a;color:#f4f4f4}
+html[data-theme=dark] body:not(:has(.workspace)) button{background:#f4f4f4;color:#080808}
+html[data-theme=dark] body:not(:has(.workspace)) button:hover{background:#fff}
+html[data-theme=dark] .settings-page,.settings-sections>section{background:#080808}
+html[data-theme=dark] .settings-sections>section{border-color:#303030}
