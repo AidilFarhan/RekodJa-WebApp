@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { googlePickerConfiguration } from '@/lib/google-config';
 import { attentionItems, overviewMetrics, type DashboardApplication, type DashboardEvent } from '@/lib/dashboard';
 import TodayDate from './today-date';
+import RateMetric from './rate-metric';
 import SyncTrackerButton from '../settings/sync-tracker-button';
 
 export const dynamic = 'force-dynamic';
@@ -28,6 +29,8 @@ export default async function OverviewPage() {
   const applicationsTyped = (applications ?? []) as DashboardApplication[];
   const appEvents = (events ?? []) as DashboardEvent[];
   const metrics = overviewMetrics(applicationsTyped, appEvents);
+  const rejections = applicationsTyped.filter(application => application.stage === 'Rejected').length;
+  const rejectionRate = applicationsTyped.length ? Math.round(rejections / applicationsTyped.length * 100) : 0;
   const attentionAll = attentionItems(applicationsTyped, appEvents);
   const attention = attentionAll.slice(0, 4);
   const name = profile?.display_name || 'there';
@@ -44,9 +47,9 @@ export default async function OverviewPage() {
       <div className="section-heading"><h2>Your search at a glance</h2><Link className="quiet-link" href="/dashboard/analytics">View analytics →</Link></div>
       <div className="metrics">
         <div><span className="muted">Applications</span><strong>{metrics.applications}</strong></div>
-        <div><span className="muted">Response rate</span><strong>{metrics.responseRate}%</strong></div>
-        <div><span className="muted">Interview rate</span><strong>{metrics.interviewRate}%</strong></div>
-        <div><span className="muted">Offer rate</span><strong>{metrics.offerRate}%</strong></div>
+        <RateMetric label="Rejection rate" rate={rejectionRate} count={rejections} />
+        <RateMetric label="Interview rate" rate={metrics.interviewRate} count={metrics.interviews} />
+        <RateMetric label="Offer rate" rate={metrics.offerRate} count={metrics.offers} />
       </div>
     </div>
     <div>

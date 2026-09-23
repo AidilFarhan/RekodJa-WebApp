@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { scanGmail, GMAIL_READONLY_SCOPE } from '@/lib/gmail/scan-engine';
 import type { ApplicationRecord } from '@/lib/gmail/scan-core';
+import { autoConfirmAction, autoConfirmEligible, confirmCandidate } from '@/lib/gmail/confirm';
+import type { Stage } from '@/lib/dashboard';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -74,7 +76,62 @@ export async function POST(request: NextRequest) {
       savedCandidates = payload.length;
     }
 
-    return NextResponse.json({ ...result, savedCandidates });
+    /*
+     * Auto-confirm (GMAIL_AUTO_CONFIRM, on by default): candidates that carry
+     * company + role + status and a unique application match are handled
+     * immediately. The email only ever moves the application FORWARD — a
+     * same-or-earlier stage (e.g. a stale ack after the user already set
+     * Interview in the tracker) is dismissed without touching the application
+     * or the Sheet. Only rows still 'pending' are touched, so rescans never
+     * re-apply already handled emails.
+     */
+    const autoConfirm = process.env.GMAIL_AUTO_CONFIRM !== '0';
+    let autoConfirmed = 0;
+    let autoDismissed = 0;
+    if (autoConfirm && result.candidates.length) {
+      const messageIds = result.candidates.map((candidate) => candidate.messageId);
+      const appIds = [...new Set(result.candidates.map((candidate) => candidate.match?.applicationId).filter((id): id is string => Boolean(id)))];
+      const [{ data: stored }, appsResult] = await Promise.all([
+        client
+          .from('gmail_scan_candidates')
+          .select('message_id, review_state')
+          .eq('user_id', user.id)
+          .in('message_id', messageIds),
+        appIds.length
+          ? client
+              .from('applications')
+              .select('id, stage')
+              .eq('user_id', user.id)
+              .in('id', appIds)
+          : { data: [] },
+      ]);
+      const reviewStates = new Map((stored ?? []).map((row) => [row.message_id, row.review_state] as const));
+      const appStages = new Map(((appsResult.data ?? []) as { id: string; stage: string }[]).map((row) => [row.id, row.stage] as const));
+      for (const candidate of result.candidates) {
+        if (reviewStates.get(candidate.messageId) !== 'pending') continue;
+        if (!autoConfirmEligible(candidate)) continue;
+        const applicationId = candidate.match!.applicationId;
+        const action = autoConfirmAction(appStages.get(applicationId) ?? '', candidate.suggested.status);
+        if (action === 'dismiss-only') {
+          await client
+            .from('gmail_scan_candidates')
+            .update({ review_state: 'dismissed', updated_at: new Date().toISOString() })
+            .eq('user_id', user.id)
+            .eq('message_id', candidate.messageId);
+          autoDismissed += 1;
+          continue;
+        }
+        if (action === 'skip') continue;
+        const outcome = await confirmCandidate(client, user.id, token, {
+          messageId: candidate.messageId,
+          applicationId,
+          stage: candidate.suggested.status as Stage,
+        });
+        if (outcome.ok) autoConfirmed += 1;
+      }
+    }
+
+    return NextResponse.json({ ...result, savedCandidates, autoConfirmed, autoDismissed });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'The Gmail scan failed.';
     return NextResponse.json({ error: message }, { status: 502 });

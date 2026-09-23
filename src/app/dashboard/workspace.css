@@ -1,7 +1,7 @@
 body:has(.workspace){background:white}
 body:has(.workspace)>header{display:none}
 body:has(.workspace)>main{margin:0;padding:0;max-width:none}
-.workspace{min-height:100vh;color:#253043;font-size:13px}
+.workspace{min-height:100vh;color:#253043;font-size:13px;--motion-flow:cubic-bezier(.22,1,.36,1);--motion-soft:cubic-bezier(.2,.8,.2,1)}
 .workspace-sidebar{position:fixed;inset:0 auto 0 0;width:180px;background:#fafafa;border-right:1px solid #e7eaf0;box-shadow:2px 0 14px rgba(20,33,61,.15);z-index:1;padding:25px 12px;display:flex;flex-direction:column;transition:transform .25s ease}
 @media(min-width:601px){
   .workspace-body{transition:margin-left .25s ease}
@@ -15,6 +15,7 @@ body:has(.workspace)>main{margin:0;padding:0;max-width:none}
 .workspace-sidebar nav{display:grid;gap:4px}
 .workspace-sidebar nav a{padding:12px;border-radius:4px;text-decoration:none;color:#596579;display:flex;align-items:center;gap:8px}
 .workspace-sidebar nav a[aria-current]{background:#edf0f5;color:#14213d;font-weight:700}
+.workspace-sidebar nav a:hover,.workspace-sidebar nav a:focus-visible,.sidebar-bottom>a:hover,.sidebar-bottom>a:focus-visible{font-weight:700}
 .nav-count{margin-left:auto;font-size:11px;background:#e1e5ee;border-radius:4px;min-width:20px;text-align:center;padding:2px 5px}
 .sidebar-bottom{margin-top:auto;color:#697589}
 .sidebar-bottom>a{text-decoration:none;color:inherit;display:inline-flex;align-items:center;gap:6px}
@@ -62,6 +63,8 @@ body:has(.workspace)>main{margin:0;padding:0;max-width:none}
 .application-table th:nth-child(5){width:31%}
 .application-table td{padding:16px 14px;white-space:normal;overflow-wrap:anywhere;vertical-align:middle;border-color:#e5e7eb}
 .application-table tbody tr:hover{background:#fcfcfd}
+.application-table tbody tr{outline:2px solid transparent;outline-offset:-2px;transition:outline-color 380ms var(--motion-flow),background-color 380ms var(--motion-flow)}
+.application-table tbody tr:hover,.application-table tbody tr:focus-within{outline-color:#14213d;background:#f5f7fa}
 .application-table td:first-child a{font-weight:600;text-decoration:none;color:#253043}
 .role-text,.activity-date{display:block;color:#626976;margin-top:4px;font-size:11px}
 .status-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid #e0e4ea;background:#fafafa;padding:4px 7px;border-radius:4px;font-size:10px;color:#515b6b;white-space:nowrap;box-shadow:0 0 6px rgba(20,33,61,.15)}
@@ -81,6 +84,9 @@ body:has(.workspace)>main{margin:0;padding:0;max-width:none}
 .metrics>div:first-child{padding-left:0}
 .metrics>div:last-child{border:0;padding-right:0}
 .metrics .muted{font-size:12px;color:#626976}
+.rate-metric-value{display:block;padding:0;background:transparent;color:#14213d;text-align:left;width:100%;border-radius:4px;line-height:1}
+.rate-metric-value svg{display:block;max-width:100%;overflow:visible}
+.rate-metric-value text{fill:currentColor;font:600 30px Arial,sans-serif;letter-spacing:-1px}
 .metrics strong{font-size:27px;font-weight:500;letter-spacing:-.8px;line-height:1;color:#23272f}
 .overview-note{margin:12px 0 0;font-size:11px;color:#626976}
 .workspace .empty-state{border:0;padding:50px 15px}
@@ -125,6 +131,8 @@ body:has(.workspace)>main{margin:0;padding:0;max-width:none}
 .attention-list{border:1px solid #e5e7eb;border-radius:6px;overflow:hidden}
 .attention-row{display:flex;align-items:center;gap:17px;padding:19px 22px;border-bottom:1px solid #e5e7eb}
 .attention-row:last-child{border-bottom:0}
+.attention-row{outline:2px solid transparent;outline-offset:-2px;transition:outline-color 380ms var(--motion-flow),background-color 380ms var(--motion-flow),border-radius 450ms var(--motion-flow)}
+.attention-row:hover,.attention-row:focus-within{outline-color:#14213d;background:#f5f7fa;border-radius:8px}
 .attention-main{flex:1;min-width:0}
 .attention-company{font-weight:600;font-size:13px;display:flex;align-items:center;gap:12px}
 .attention-company a{color:#23272f;text-decoration:none}
@@ -182,6 +190,7 @@ body:has(.workspace)>main{margin:0;padding:0;max-width:none}
 .stage-sync-note{font-size:11px;color:#626976;margin:0;max-width:260px;text-align:right;line-height:1.4}
 .stage-sync-note.ok{color:#2c6e49}
 .stage-sync-note.warn{color:#a53535}
+.date-applied-editor{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.date-applied-editor input{width:auto;margin:0;padding:6px 8px;font-size:12px}.date-applied-editor .button{margin:0}.date-sync-note{width:100%;font-size:11px;color:#626976;margin:0;line-height:1.4}.date-sync-note.ok{color:#2c6e49}.date-sync-note.warn{color:#a53535}
 /* Gmail scan */
 .scan-actions{display:flex;align-items:center;gap:14px;margin:6px 0 14px}
 .scan-actions .muted{margin:0;font-size:12px}
@@ -205,3 +214,72 @@ body:has(.workspace)>main{margin:0;padding:0;max-width:none}
 .scan-confirmed{font-size:12px;color:#2c6e49;margin:8px 0 0}
 .scan-done{border-color:#cfe6d4;background:#f2faf4;opacity:.92}
 .scan-step-hint{font-size:11px;color:#626976}
+
+/* Shared fluid motion: small distances, gentle settling and stable row sizes. */
+.workspace-sidebar{transition:transform 480ms var(--motion-flow),box-shadow 480ms var(--motion-flow)}
+@media(min-width:601px){.workspace-body{transition:margin-left 480ms var(--motion-flow)}}
+.workspace a,.workspace button{transition:color 250ms var(--motion-soft),background-color 300ms var(--motion-soft),border-color 300ms var(--motion-soft),box-shadow 350ms var(--motion-flow),transform 350ms var(--motion-flow),border-radius 350ms var(--motion-flow),text-shadow 250ms var(--motion-soft)}
+.workspace input,.workspace select,.workspace textarea{transition:border-color 280ms var(--motion-soft),box-shadow 300ms var(--motion-flow),background-color 280ms var(--motion-soft)}
+.workspace input:focus,.workspace select:focus,.workspace textarea:focus{border-color:#607491;box-shadow:0 0 0 3px rgba(96,116,145,.12)}
+.workspace-sidebar nav a:hover,.workspace-sidebar nav a:focus-visible{transform:translateX(3px);border-radius:9px;background:#edf0f5}
+.workspace .button:hover:not(:disabled),.workspace .sidebar-toggle:hover,.workspace .bell:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(20,33,61,.14)}
+.workspace .button:active:not(:disabled),.workspace .sidebar-toggle:active,.workspace .bell:active{transform:translateY(0) scale(.97);transition-duration:140ms}
+.workspace .tabs button:hover{color:#14213d;text-shadow:0 0 .45px currentColor}
+.workspace .notification-panel,.workspace .importing-dialog,.workspace .scan-suggestions,.workspace .attention-row .scan-card{animation:workspace-surface-in 380ms var(--motion-flow) both;transform-origin:top center}
+.workspace .importing-overlay{animation:workspace-fade-in 220ms var(--motion-soft) both}
+.workspace .importing-track span{animation-duration:1.2s;animation-timing-function:ease-in-out}
+@keyframes workspace-surface-in{from{opacity:0;transform:translateY(6px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes workspace-fade-in{from{opacity:0}to{opacity:1}}
+@media(prefers-reduced-motion:reduce){
+  .workspace *,.workspace *::before,.workspace *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+  .workspace-sidebar nav a:hover,.workspace-sidebar nav a:focus-visible,.workspace .button:hover:not(:disabled),.workspace .button:active:not(:disabled),.workspace .sidebar-toggle:hover,.workspace .sidebar-toggle:active,.workspace .bell:hover,.workspace .bell:active{transform:none}
+}
+
+.theme-toggle{background:transparent;border:1px solid #d7dce4;color:#596579;padding:6px 10px;border-radius:5px;font-size:11px;line-height:1.2;box-shadow:none}
+.theme-toggle:hover{background:#f0f2f5;color:#14213d}
+
+html[data-theme=dark]{color-scheme:dark}
+html[data-theme=dark] body:has(.workspace){background:#050505}
+html[data-theme=dark] .workspace,html[data-theme=dark] .workspace-body,html[data-theme=dark] .workspace-content,html[data-theme=dark] .workspace-content>section,html[data-theme=dark] .overview-page{color:#edf2f7;background:#050505}
+html[data-theme=dark] .workspace-sidebar{background:#080808;border-color:#2c2c2c;box-shadow:2px 0 18px rgba(0,0,0,.5)}
+html[data-theme=dark] .workspace-topbar{background:#080808;border-color:#2c2c2c}
+html[data-theme=dark] .workspace-sidebar nav a,html[data-theme=dark] .sidebar-bottom,html[data-theme=dark] .sidebar-bottom>a,html[data-theme=dark] .bell{color:#aebdd0}
+html[data-theme=dark] .workspace-sidebar nav a[aria-current],html[data-theme=dark] .workspace-sidebar nav a:hover,html[data-theme=dark] .workspace-sidebar nav a:focus-visible{background:#1e1e1e;color:#fff}
+html[data-theme=dark] .sidebar-bottom p{border-color:#303030;color:#bdbdbd}
+html[data-theme=dark] .workspace-brand,html[data-theme=dark] .workspace-brand .wordmark,html[data-theme=dark] .workspace h1,html[data-theme=dark] .workspace h2,html[data-theme=dark] .workspace strong,html[data-theme=dark] .section-heading h2,html[data-theme=dark] .surface h2,html[data-theme=dark] .metrics strong{color:#f4f8ff}
+html[data-theme=dark] .wordmark{color:#f4f8ff}
+html[data-theme=dark] .workspace-brand small,html[data-theme=dark] .theme-toggle{border-color:#595959;color:#f7f7f7;background:#151515}
+html[data-theme=dark] .theme-toggle:hover{background:#282828;color:#fff}
+html[data-theme=dark] .sidebar-toggle:hover{background:#1e1e1e}
+html[data-theme=dark] .sidebar-toggle span{background:#f4f4f4}
+html[data-theme=dark] .muted,html[data-theme=dark] .page-subtitle,html[data-theme=dark] .application-count,html[data-theme=dark] .role-text,html[data-theme=dark] .activity-date,html[data-theme=dark] .attention-role,html[data-theme=dark] .footnote,html[data-theme=dark] .overview-note,html[data-theme=dark] .scan-feedback,html[data-theme=dark] .date-sync-note,html[data-theme=dark] .stage-sync-note{color:#9baabd}
+html[data-theme=dark] .application-filters label,html[data-theme=dark] .field,html[data-theme=dark] .sort-filter{color:#b2c0d2}
+html[data-theme=dark] .application-filters input,html[data-theme=dark] .application-filters select,html[data-theme=dark] .sort-filter select,html[data-theme=dark] .scan-grid input,html[data-theme=dark] .scan-grid select,html[data-theme=dark] .stage-select,html[data-theme=dark] .date-applied-editor input,html[data-theme=dark] .draft-section textarea{background:#0b0b0b;border-color:#3a3a3a;color:#f4f4f4}
+html[data-theme=dark] .application-table,html[data-theme=dark] .analytics-table{background:#080808;color:#edf2f7}
+html[data-theme=dark] .application-table th,html[data-theme=dark] .analytics-table th{background:#111;border-color:#303030;color:#bdbdbd}
+html[data-theme=dark] .application-table td,html[data-theme=dark] .analytics-table td{border-color:#2c2c2c}
+html[data-theme=dark] .application-table tbody tr:hover,html[data-theme=dark] .attention-row:hover,html[data-theme=dark] .attention-row:focus-within,html[data-theme=dark] .analytics-table tbody tr:hover{background:#151515}
+html[data-theme=dark] .application-table tbody tr:hover,html[data-theme=dark] .application-table tbody tr:focus-within,html[data-theme=dark] .attention-row:hover,html[data-theme=dark] .attention-row:focus-within{outline-color:#92b5e8}
+html[data-theme=dark] .application-table td:first-child a,html[data-theme=dark] .attention-company a,html[data-theme=dark] .quiet-link,html[data-theme=dark] .back-link{color:#dbeafe}
+html[data-theme=dark] .attention-list,html[data-theme=dark] .attention-row,html[data-theme=dark] .metrics,html[data-theme=dark] .metrics>div,html[data-theme=dark] .surface,html[data-theme=dark] .caught-up,html[data-theme=dark] .scan-card,html[data-theme=dark] .settings-sections>section,html[data-theme=dark] .detail-grid div,html[data-theme=dark] .timeline,html[data-theme=dark] .follow-complete,html[data-theme=dark] .metric-definitions{border-color:#303030}
+html[data-theme=dark] .overview-attention,html[data-theme=dark] .surface,html[data-theme=dark] .scan-card,html[data-theme=dark] .caught-up{background:#080808}
+html[data-theme=dark] .attention-main p,html[data-theme=dark] .settings-sections p,html[data-theme=dark] .follow-summary p,html[data-theme=dark] .scan-snippet,html[data-theme=dark] .sync-feedback{color:#c0ccdb}
+html[data-theme=dark] .scan-snippet{background:#090909;border-color:#303030}
+html[data-theme=dark] .button{background:#151515;border-color:#595959;color:#f7f7f7;box-shadow:0 0 8px rgba(0,0,0,.3)}
+html[data-theme=dark] .button:hover{background:#282828;color:#fff}
+html[data-theme=dark] .button.primary{background:#f4f4f4;border-color:#f4f4f4;color:#080808}
+html[data-theme=dark] .button.primary:hover{background:#fff}
+html[data-theme=dark] .button.danger{background:#2a1b24;border-color:#714151;color:#ffb9c1}
+html[data-theme=dark] .tabs{border-color:#26354a}
+html[data-theme=dark] .tabs button{color:#9baabd}
+html[data-theme=dark] .tabs button[aria-pressed=true]{border-color:#9dc4f5;color:#edf4ff}
+html[data-theme=dark] .tabs button:hover{color:#edf4ff}
+html[data-theme=dark] .nav-count,html[data-theme=dark] .count-pill,html[data-theme=dark] .avatar{background:#263853;color:#dbeafe}
+html[data-theme=dark] .overview-attention .count-pill{background:#3a202a;color:#ffb8c0}
+html[data-theme=dark] .status-chip{background:#172235;border-color:#3a4d69;color:#c7d3e3;box-shadow:none}
+html[data-theme=dark] .stage-select.status-applied{background:#2a2b21;color:#f1d98e}html[data-theme=dark] .stage-select.status-interview{background:#1d2d48;color:#b8d2ff}html[data-theme=dark] .stage-select.status-offer{background:#193729;color:#aae4bd}html[data-theme=dark] .stage-select.status-rejected{background:#3b2229;color:#ffb5bf}html[data-theme=dark] .stage-select.status-ghosted,html[data-theme=dark] .stage-select.status-withdrawn{background:#2b3340;color:#c0c9d4}
+html[data-theme=dark] .horizontal-track{background:#26354a}html[data-theme=dark] .horizontal-track>div,html[data-theme=dark] .bar-track>div{background:#82aee0}
+html[data-theme=dark] .notification-panel,html[data-theme=dark] .scan-suggestions,html[data-theme=dark] .sync-dialog{background:#0b0b0b;border-color:#3a3a3a;color:#f4f4f4;box-shadow:0 14px 34px rgba(0,0,0,.55)}
+html[data-theme=dark] .notification-list li{border-color:#303030;color:#e0e0e0}html[data-theme=dark] .notification-list .dismiss{color:#bdbdbd}
+html[data-theme=dark] .message{background:#1c2a40;color:#dbeafe}
+html[data-theme=dark] .rate-metric-value,html[data-theme=dark] .rate-metric-value text{color:#fff;fill:#fff}

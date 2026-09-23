@@ -12,11 +12,13 @@ import {
   extractEmailDetails,
   isApplicationEmail,
   matchApplications,
+  recruiterRequestPhrase,
   suggestKnownCompany,
   type ApplicationRecord,
   type EmailStage,
   type GmailMessage,
 } from './scan-core.ts';
+import { extractWithGemini, geminiConfigured } from './gemini-extract.ts';
 
 export const GMAIL_READONLY_SCOPE = 'https://www.googleapis.com/auth/gmail.readonly';
 
@@ -43,13 +45,38 @@ export type ScanCandidate = {
   eventType: 'stage_observation' | 'employer_response' | null;
 };
 
-export type ScanResult = { email: string; scanned: number; skipped: number; candidates: ScanCandidate[] };
+export type LlmAttempt = {
+  subject: string;
+  company: string;
+  role: string;
+  status: string;
+  // What the deterministic scanner produced for the same email, for comparison.
+  regex: { company: string; role: string; status: string };
+  kind: 'fallback' | 'eval';
+  error: string | null;
+};
+
+export type ScanResult = { email: string; scanned: number; skipped: number; candidates: ScanCandidate[]; llmAttempts: LlmAttempt[] };
 
 // Paced + retrying fetch helper, ported from the extension's
 // gmail-background.js policy: reads at most 2/s, retry transient
 // errors up to 5 times, honour Retry-After where short.
 // Timing is exposed so tests can run without real delays.
 export const scanTiming = { paceMs: 500, backoffBaseMs: 5000 };
+
+/*
+ * Per-scan LLM budget. Each call costs ~1-2s, and the route runs under
+ * maxDuration = 300, so the cap protects the whole scan from model latency.
+ * Set GEMINI_MAX_CALLS=0 to disable the fallback entirely.
+ */
+const llmMaxCalls = Number(process.env.GEMINI_MAX_CALLS);
+const llmEvalCalls = Number(process.env.GEMINI_EVAL_CALLS);
+export const scanLlm = {
+  maxCalls: Number.isFinite(llmMaxCalls) ? Math.max(0, llmMaxCalls) : 10,
+  // Comparison calls for emails the scanner already understood. Recorded only,
+  // never applied. Set GEMINI_EVAL_CALLS=0 to disable.
+  evalCalls: Number.isFinite(llmEvalCalls) ? Math.max(0, llmEvalCalls) : 10,
+};
 let lastRequestAt = 0;
 
 async function gmailJson<T>(token: string, url: string, attempt = 0): Promise<T> {
@@ -108,6 +135,9 @@ export async function scanGmail(token: string, applications: ApplicationRecord[]
   let scanned = 0;
   let skipped = 0;
   let nextPage: string | undefined;
+  let llmBudget = scanLlm.maxCalls;
+  let evalBudget = scanLlm.evalCalls;
+  const llmAttempts: LlmAttempt[] = [];
   const byThread = new Map<string, ScanCandidate>();
 
   do {
@@ -130,12 +160,55 @@ export async function scanGmail(token: string, applications: ApplicationRecord[]
       const text = currentEmailText(message);
       if (!isApplicationEmail(subject, text, from)) { skipped += 1; continue; }
 
-      const details = suggestKnownCompany(extractEmailDetails(subject, text, from), subject + '\n' + text + '\n' + from, applications);
       const link = `https://mail.google.com/mail/?authuser=${encodeURIComponent(email)}#all/${message.threadId}`;
-      const matches = matchApplications(applications, details.company, link);
-      const status = classifyEmail(subject, text);
-      // Only surface emails that matched one of the keyword rules.
-      if (!status) { skipped += 1; continue; }
+      let status = classifyEmail(subject, text);
+      const recruiterRequest = recruiterRequestPhrase.test(text);
+      let details = suggestKnownCompany(extractEmailDetails(subject, text, from), subject + '\n' + text + '\n' + from, applications);
+      let matches = matchApplications(applications, details.company, link);
+      const matchedDeterministically = matches.length === 1;
+      // One Gemini attempt per email that needs it (DESIGN-ACTION-CENTER.md §7):
+      // company extraction when matching failed, and/or a stage when regex
+      // found none. The model never picks an application (D3) — it can only
+      // feed a company name into matching and an enum-validated stage into the
+      // candidate. Fails closed: no API key, a bad response or a timeout
+      // leaves everything as the deterministic path produced it.
+      const needsGemini = (matches.length !== 1 && !details.company) || (!status && !recruiterRequest);
+      if (needsGemini && geminiConfigured() && llmBudget > 0) {
+        llmBudget -= 1;
+        const ai = await extractWithGemini(subject, text, from);
+        llmAttempts.push({
+          subject,
+          company: ai?.company ?? '',
+          role: ai?.role ?? '',
+          status: ai?.status ?? '',
+          regex: { company: details.company, role: details.role, status },
+          kind: 'fallback',
+          error: ai?.error ?? null,
+        });
+        if (ai?.company) {
+          details = { company: ai.company, role: ai.role || details.role, sender: details.sender };
+          matches = matchApplications(applications, details.company, link);
+        }
+        if (ai?.status && !status) status = ai.status;
+      }
+      // Surface emails that matched a keyword rule, a recruiter request or a
+      // model-confirmed stage.
+      if (!status && !recruiterRequest) { skipped += 1; continue; }
+      // Training comparison: also ask Gemini about emails the scanner already
+      // understood without help. Recorded only — never applied (D3).
+      if (matchedDeterministically && geminiConfigured() && evalBudget > 0) {
+        evalBudget -= 1;
+        const ai = await extractWithGemini(subject, text, from);
+        llmAttempts.push({
+          subject,
+          company: ai?.company ?? '',
+          role: ai?.role ?? '',
+          status: ai?.status ?? '',
+          regex: { company: details.company, role: details.role, status },
+          kind: 'eval',
+          error: ai?.error ?? null,
+        });
+      }
       const eventType: ScanCandidate['eventType'] = ['Rejected', 'Offer', 'Interview'].includes(status) ? 'employer_response' : 'stage_observation';
       const candidate: ScanCandidate = {
         email,
@@ -159,7 +232,7 @@ export async function scanGmail(token: string, applications: ApplicationRecord[]
   } while (nextPage);
 
   const candidates = [...byThread.values()].sort((a, b) => Number(b.internalDate) - Number(a.internalDate));
-  return { email, scanned, skipped, candidates };
+  return { email, scanned, skipped, candidates, llmAttempts };
 }
 
 /*

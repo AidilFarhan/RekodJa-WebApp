@@ -7,3 +7,5 @@ node_modules/
 
 .vscode/
 build-log.txt
+.vercel
+.env*

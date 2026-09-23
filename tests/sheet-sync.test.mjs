@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { syncStageToSheet } from '../src/lib/sheets/sync.ts';
+import { syncDateAppliedToSheet, syncStageToSheet } from '../src/lib/sheets/sync.ts';
 import { rowIdentityKey } from '../src/lib/sheets/import.ts';
 
 const headers = ['Date Applied', 'Company', 'Role', 'Job Link', 'Status', 'Source', 'Days Since Applied'];
@@ -33,6 +33,30 @@ test('writes the new stage into the matching row status cell', async () => {
     assert.match(decodeURIComponent(write.url), /'Applications'!E2\?/);
     assert.match(write.url, /valueInputOption=USER_ENTERED/);
     assert.deepEqual(JSON.parse(write.options.body), { values: [['Rejected']] });
+  } finally { globalThis.fetch = originalFetch; }
+});
+
+test('writes the new date into the existing matching row without appending', async () => {
+  const calls = [];
+  const key = rowIdentityKey({ spreadsheetId: 'sheet-1', sheetName: 'Applications', company: 'Acme', role: 'Engineer', dateApplied: '2026-09-01', jobUrl: 'https://example.com/job' });
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url, options) => {
+    calls.push({ url: String(url), options });
+    if (options?.method === 'PUT') return writeResponse();
+    return sheetResponse([headers, ['2026-09-01', 'Acme', 'Engineer', 'https://example.com/job', 'Applied', 'LinkedIn', '16']]);
+  };
+  try {
+    const result = await syncDateAppliedToSheet({
+      token: 'token', spreadsheetId: 'sheet-1', sheetName: 'Applications', importKey: key,
+      company: 'Acme', role: 'Engineer', currentDateApplied: '2026-09-01', jobUrl: 'https://example.com/job', nextDateApplied: '2026-10-09',
+    });
+    assert.equal(result.synced, true);
+    assert.equal(result.row, 2);
+    const write = calls.find((call) => call.options?.method === 'PUT');
+    assert.ok(write, 'expected a PUT write');
+    assert.match(decodeURIComponent(write.url), /'Applications'!A2\?/);
+    assert.doesNotMatch(write.url, /append/);
+    assert.deepEqual(JSON.parse(write.options.body), { values: [['2026-10-09']] });
   } finally { globalThis.fetch = originalFetch; }
 });
 

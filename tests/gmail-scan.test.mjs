@@ -2,6 +2,7 @@ import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { scanGmail, scanTiming, GMAIL_SEARCH_QUERY } from '../src/lib/gmail/scan-engine.ts';
 import { classifyEmail, isApplicationEmail } from '../src/lib/gmail/scan-core.ts';
+import { autoConfirmEligible, autoConfirmAction } from '../src/lib/gmail/confirm.ts';
 
 const email = 'user@example.com';
 
@@ -133,15 +134,55 @@ test('excludes SDK, OAuth verification and promotional campaign emails', () => {
   assert.equal(isApplicationEmail('JOM SERTAI KEMPEN SPEND BONANZA!', 'Kempen perbelanjaan hebat menanti anda.'), false);
 });
 
-test('ignores JobStreet/Indeed successfully-submitted auto-confirmations', () => {
-  assert.equal(isApplicationEmail('Application received', 'Your application has been successfully submitted.', 'Jobstreet Applications <noreply@jobstreet.com>'), false);
-  assert.equal(isApplicationEmail('Application received', 'Your application has been successfully submitted.', 'Indeed <noreply@indeed.com>'), false);
+test('JobStreet/Indeed successfully-submitted emails are application emails', () => {
+  assert.equal(isApplicationEmail('Application received', 'Your application has been successfully submitted.', 'Jobstreet Applications <noreply@jobstreet.com>'), true);
+  assert.equal(isApplicationEmail('Application received', 'Your application has been successfully submitted.', 'Indeed <noreply@indeed.com>'), true);
   assert.equal(isApplicationEmail('Application received', 'Your application has been successfully submitted.', 'Acme Careers <recruiter@acme.com>'), true);
+});
+
+test('surfaces a recruiter-request email even without a keyword stage', async () => {
+  const responses = [
+    ['https://gmail.googleapis.com/gmail/v1/users/me/profile', profile],
+    ['https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=50', { messages: [{ id: 'p2', threadId: 't2' }], nextPageToken: undefined }],
+    ['https://gmail.googleapis.com/gmail/v1/users/me/messages/p2', applicationMessage('p2', 't2', '1789430400000', 'Action needed', 'To proceed further with your application, please complete the online assessment.')],
+  ];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    const found = responses.find(([prefix]) => String(url).startsWith(prefix));
+    assert.ok(found, 'unexpected request: ' + url);
+    return response(found[1]);
+  };
+  try {
+    const result = await scanGmail('token', applications, email);
+    assert.equal(result.candidates.length, 1);
+    assert.equal(result.candidates[0].suggested.status, '');
+  } finally { globalThis.fetch = originalFetch; }
 });
 
 test('scan window is the last 45 days', () => {
   assert.match(GMAIL_SEARCH_QUERY, /newer_than:45d/);
   assert.doesNotMatch(GMAIL_SEARCH_QUERY, /newer_than:3m/);
+});
+
+test('auto-confirm requires a match and all three fields', () => {
+  const full = { match: { applicationId: 'a' }, suggested: { company: 'C', role: 'R', status: 'Offer' } };
+  assert.equal(autoConfirmEligible(full), true);
+  assert.equal(autoConfirmEligible({ match: null, suggested: full.suggested }), false);
+  assert.equal(autoConfirmEligible({ match: full.match, suggested: { company: '', role: 'R', status: 'Offer' } }), false);
+  assert.equal(autoConfirmEligible({ match: full.match, suggested: { company: 'C', role: '', status: 'Offer' } }), false);
+  assert.equal(autoConfirmEligible({ match: full.match, suggested: { company: 'C', role: 'R', status: '' } }), false);
+});
+
+test('auto-confirm never regresses a stage the user already set', () => {
+  assert.equal(autoConfirmAction('Applied', 'Interview'), 'confirm');
+  assert.equal(autoConfirmAction('Interview', 'Offer'), 'confirm');
+  assert.equal(autoConfirmAction('Applied', 'Rejected'), 'confirm');
+  assert.equal(autoConfirmAction('Interview', 'Applied'), 'dismiss-only');
+  assert.equal(autoConfirmAction('Offer', 'Applied'), 'dismiss-only');
+  assert.equal(autoConfirmAction('Applied', 'Applied'), 'dismiss-only');
+  assert.equal(autoConfirmAction('Ghosted', 'Applied'), 'dismiss-only');
+  assert.equal(autoConfirmAction('Offer', 'Interview'), 'dismiss-only');
+  assert.equal(autoConfirmAction('', 'Applied'), 'skip');
 });
 
 test('skips application emails that match no keyword rule', async () => {
