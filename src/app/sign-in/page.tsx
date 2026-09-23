@@ -1,21 +1,22 @@
-import { signIn } from '../actions';
+import { createAccount, signIn } from '../actions';
+import AccountNotice from './account-notice';
 import { CircuitBoard } from '@/components/ui/circuit-board';
 import { TextMorph } from '@/components/ui/text-morph';
 import { Globe, Monitor, Puzzle, Table2 } from 'lucide-react';
-export default async function SignIn({ searchParams }: { searchParams: Promise<{ error?: string; deleted?: string; reason?: string }> }) {
-  const { error, deleted, reason } = await searchParams;
+export default async function SignIn({ searchParams }: { searchParams: Promise<{ error?: string; deleted?: string; reason?: string; notice?: string }> }) {
+  const { error, deleted, reason, notice } = await searchParams;
   return <section className="sign-in-page">
     <TextMorph words={['Apply', 'Click Save', 'Review']} interval={2400} morphDuration={680} className="sign-in-morph" />
     <div className="sign-in-main">
       <h1 className="sign-in-wordmark"><span className="wordmark">Rekod<span className="wordmark-ja">Ja</span></span></h1>
-      <p className="sign-in-intro">Your job search, all connected.</p>
       {deleted && <p role="status" className="message">Your account and all your data have been deleted.</p>}
       {error && <p role="alert" className="message error">{reason ? `Sign-in failed: ${reason}` : 'Sign-in could not be completed. Please try again.'}</p>}
       <div className="sign-in-actions">
-        <form action={signIn}><button className="sign-in-button" type="submit">Create account with Google</button></form>
+        <form action={createAccount}><button className="sign-in-button" type="submit">Create account with Google</button></form>
         <form action={signIn}><button className="sign-in-button secondary" type="submit">Log in with Google</button></form>
       </div>
     </div>
+    {(notice === 'create-first' || notice === 'already-exists') && <AccountNotice key={notice} notice={notice} />}
     <CircuitBoard
       nodes={[
         { id: 'start', x: 80, y: 80, label: 'Job Website', icon: <Globe size={16} /> },

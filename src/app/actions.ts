@@ -2,8 +2,17 @@
 import { redirect } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { configuration } from '@/lib/config';
+import { cookies } from 'next/headers';
 
 export async function signIn() {
+  return startGoogleAuth('login');
+}
+export async function createAccount() {
+  return startGoogleAuth('signup');
+}
+async function startGoogleAuth(intent: 'login' | 'signup') {
+  const jar = await cookies();
+  jar.set('rekodja-auth-intent', intent, { httpOnly: true, sameSite: 'lax', secure: configuration().appUrl.startsWith('https://'), path: '/', maxAge: 600 });
   const client = await supabase();
   const { data, error } = await client.auth.signInWithOAuth({ provider: 'google', options: {
     scopes: 'openid email profile', redirectTo: `${configuration().appUrl}/auth/callback`,
