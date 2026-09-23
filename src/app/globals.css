@@ -32,7 +32,7 @@ html[data-theme=dark] body:not(:has(.workspace)) main>section{background:#080808
 html[data-theme=dark] body:not(:has(.workspace)) input,html[data-theme=dark] body:not(:has(.workspace)) select,html[data-theme=dark] body:not(:has(.workspace)) textarea{background:#0b0b0b;border-color:#3a3a3a;color:#f4f4f4}
 html[data-theme=dark] body:not(:has(.workspace)) button{background:#f4f4f4;color:#080808}
 html[data-theme=dark] body:not(:has(.workspace)) button:hover{background:#fff}
-html[data-theme=dark] .settings-page,.settings-sections>section{background:#080808}
+html[data-theme=dark] .settings-page,html[data-theme=dark] .settings-sections>section{background:#080808}
 html[data-theme=dark] .settings-sections>section{border-color:#303030}
 
 /* Sign-in: no card chrome, just the RekodJa mark and a connected-flow illustration. */
