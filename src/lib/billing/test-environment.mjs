@@ -93,8 +93,12 @@ export function currentAppUrl(env) {
  */
 export function stripeKeyMode(key) {
   if (typeof key !== 'string') return null;
-  if (key.startsWith('sk_test_') || key.startsWith('rk_test_')) return 'test';
-  if (key.startsWith('sk_live_') || key.startsWith('rk_live_')) return 'live';
+  // Environment values are pasted by hand and often carry a trailing newline or
+  // space. Trimming here prevents a key that looks correct everywhere else from
+  // failing for a reason nobody can see.
+  const value = key.trim();
+  if (value.startsWith('sk_test_') || value.startsWith('rk_test_')) return 'test';
+  if (value.startsWith('sk_live_') || value.startsWith('rk_live_')) return 'live';
   return null;
 }
 

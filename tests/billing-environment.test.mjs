@@ -51,6 +51,9 @@ test('only key prefixes that are a secret or a restricted key are recognised', (
   assert.equal(stripeKeyMode('pk_test_example'), null);
   assert.equal(stripeKeyMode('sk_example'), null);
   assert.equal(stripeKeyMode(undefined), null);
+  // A pasted value usually arrives with a trailing newline.
+  assert.equal(stripeKeyMode('rk_live_example\n'), 'live');
+  assert.equal(stripeKeyMode('  sk_test_example  '), 'test');
 });
 
 test('a key that does not match its environment is refused', () => {
