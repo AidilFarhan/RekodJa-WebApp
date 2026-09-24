@@ -9,3 +9,7 @@ node_modules/
 build-log.txt
 .vercel
 .env*
+
+# Supabase CLI cache. Holds no secrets but is machine-local state, so it must
+# not be committed by a blanket `git add -A`.
+supabase/.temp/
