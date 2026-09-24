@@ -5,6 +5,7 @@ import { signOut } from '@/app/actions';
 import { googlePickerConfiguration } from '@/lib/google-config';
 import { billingView } from '@/lib/billing/overview';
 import { planCard } from '@/lib/billing/presentation';
+import { gmailAccessAllowed, gmailAccessKind } from '@/lib/billing/server';
 import BillingPanel from './billing-panel';
 import DeleteAccountButton from './delete-account-button';
 import ErrorPopup from './error-popup';
@@ -29,6 +30,26 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   const initials = name.split(/\s+/).slice(0, 2).map((part: string) => part[0]).join('').toUpperCase();
   const pickerConfig = googlePickerConfiguration();
   const billing = await billingView(client, user);
+  // A Gmail connection is a Google permission held in the browser, so the
+  // server cannot observe one. A completed scan is the only evidence this side
+  // has, and reporting that beats a status that can never be right. The badge
+  // reuses the same decision point the Gmail routes call.
+  const gmailKind = await gmailAccessKind(client, user);
+  const gmailAllowed = gmailAccessAllowed(gmailKind);
+  const lastScan = gmailAllowed
+    ? (await client
+        .from('gmail_scan_candidates')
+        .select('created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()).data
+    : null;
+  const gmailStatus = !gmailAllowed
+    ? 'Not included in your plan'
+    : lastScan
+      ? `Connected · last scan ${formatDate(lastScan.created_at)}`
+      : 'No scans yet';
   return <section className="settings-page">
     <h1>Settings</h1>
     <p className="page-subtitle">Manage your workspace connections and plan.</p>
@@ -56,9 +77,11 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
       </section>
       <section>
         <div>
-          <h2>Gmail <span className="subtle-tag">Pro</span></h2>
-          <p>Not connected</p>
-          <p className="muted">Gmail scanning requires Pro. Your saved applications stay available either way.</p>
+          <h2>Gmail <span className={gmailKind === 'beta' ? 'subtle-tag subtle-tag-beta' : 'subtle-tag'}>{gmailKind === 'beta' ? 'BETA' : 'Pro'}</span></h2>
+          <p>{gmailStatus}</p>
+          <p className="muted">{gmailAllowed
+            ? 'Google asks for permission in your browser when you scan.'
+            : 'Gmail scanning requires Pro. Your saved applications stay available either way.'}</p>
         </div>
       </section>
       <section className="plan-section">

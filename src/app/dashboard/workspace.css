@@ -303,6 +303,7 @@ html[data-theme=dark] .rate-metric-value,html[data-theme=dark] .rate-metric-valu
 .plan-state-past-due{background:#fae8e8;color:#982b2b}
 .plan-state-canceled{background:#eeeeec;color:#666}
 .plan-state-beta{background:#f1eaf9;color:#5a2d8f}
+.subtle-tag-beta{color:#5a2d8f;border-color:#d9c6ef;background:#f6f0fc}
 .plan-facts{display:flex;flex-wrap:wrap;gap:8px 34px;margin:0}
 .plan-facts dt{font-size:11px;color:#626976;margin-bottom:2px}
 .plan-facts dd{margin:0;font-size:13px;color:#23272f}
@@ -325,6 +326,7 @@ html[data-theme=dark] .plan-facts dt,html[data-theme=dark] .plan-notes,html[data
 html[data-theme=dark] .plan-options{border-color:#303030}
 html[data-theme=dark] .plan-state-free,html[data-theme=dark] .plan-state-canceled{background:#2b3340;color:#c0c9d4}
 html[data-theme=dark] .plan-state-beta{background:#2a1f3d;color:#d9c2f5}
+html[data-theme=dark] .settings-sections .subtle-tag-beta{color:#d9c2f5;border-color:#4a3468;background:#2a1f3d}
 html[data-theme=dark] .plan-state-trial{background:#1d2d48;color:#b8d2ff}
 html[data-theme=dark] .plan-state-active{background:#193729;color:#aae4bd}
 html[data-theme=dark] .plan-state-past-due{background:#3b2229;color:#ffb5bf}
