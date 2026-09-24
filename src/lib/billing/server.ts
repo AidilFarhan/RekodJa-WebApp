@@ -5,14 +5,22 @@ import { supabase } from '../supabase';
 import { isPro, type ProSubscription } from './access';
 import { gmailAccess, type GmailAccess } from './beta';
 import { userIsBetaTester } from './beta-server';
-import { TEST_SUPABASE_URL, TEST_APP_URL, assertTestEnvironment } from './test-environment.mjs';
+import { billingEnvironment, billingEnvironmentWithKey, currentAppUrl } from './test-environment.mjs';
 import { PRO_REQUIRED_MESSAGE } from './plans';
 
 export class BillingError extends Error {
   constructor(public status: number, message: string) { super(message); }
 }
+/** True when this deployment can actually reach Stripe. A key that matches the
+ * environment is required, so shipping this code before the live key exists
+ * changes nothing and the Plan card stays hidden until billing is switched on.
+ */
+export function billingEnabled() {
+  return billingEnvironmentWithKey(process.env) !== null;
+}
+/** Test-only check, kept because the launcher and its assertions rely on it. */
 export function billingTestEnabled() {
-  return process.env.SUPABASE_URL === TEST_SUPABASE_URL && process.env.APP_URL === TEST_APP_URL;
+  return billingEnvironment(process.env) === 'test';
 }
 /** Whether the Gmail gate blocks anyone at all.
  *
@@ -65,8 +73,10 @@ export async function gmailAccessError(client: SupabaseClient, user: { id: strin
   }
 }
 export async function authenticatedBillingUser(request: Request) {
-  assertTestEnvironment(process.env);
-  if (request.headers.get('origin') !== TEST_APP_URL) throw new BillingError(403, 'Invalid request origin.');
+  if (!billingEnvironment(process.env)) {
+    throw new BillingError(503, 'Billing is not enabled for this environment.');
+  }
+  if (request.headers.get('origin') !== currentAppUrl(process.env)) throw new BillingError(403, 'Invalid request origin.');
   const client = await supabase();
   const { data: { user }, error } = await client.auth.getUser();
   if (error || !user) throw new BillingError(401, 'Sign in before managing billing.');

@@ -7,7 +7,18 @@ import { BillingError } from './server';
 import { getBillingCustomer, cardsConfiguration, resolvePrice } from './checkout';
 import { canChangePlan, isTerminalSubscription, PLANS, SANDBOX_PORTAL, type PlanKey } from './plans';
 import { resourceId, subscriptionSnapshot } from './stripe-state';
-import { TEST_APP_URL } from './test-environment.mjs';
+import { currentAppUrl } from './test-environment.mjs';
+import { stripeObject } from './stripe-objects.mjs';
+
+/** The portal configuration for this environment. A configuration created in
+ * test mode does not exist in live mode, so a missing live value fails here
+ * rather than sending a Sandbox id to the live account.
+ */
+function portalConfiguration(): string {
+  const id = stripeObject(process.env, 'STRIPE_PORTAL_CONFIGURATION');
+  if (!id) throw new BillingError(503, 'The billing portal is not configured for this environment.');
+  return id;
+}
 
 export async function currentSubscription(stripe: Stripe, userId: string) {
   const row = await getBillingCustomer(userId);
@@ -28,7 +39,7 @@ export async function createPortal(userId: string) {
   const row = await getBillingCustomer(userId);
   if (!row.stripe_customer_id) throw new BillingError(409, 'No billing account yet.');
   const [config, cardConfig] = await Promise.all([
-    stripe.billingPortal.configurations.retrieve(SANDBOX_PORTAL), cardsConfiguration(stripe),
+    stripe.billingPortal.configurations.retrieve(portalConfiguration()), cardsConfiguration(stripe),
   ]);
   // A local server guard cannot intercept writes on Stripe's hosted portal.
   // Therefore the configuration itself must disable subscription updates.
@@ -41,8 +52,8 @@ export async function createPortal(userId: string) {
     throw new BillingError(503, 'Portal settings need review before continuing.');
   }
   const session = await stripe.billingPortal.sessions.create({
-    customer: row.stripe_customer_id, configuration: SANDBOX_PORTAL,
-    return_url: `${TEST_APP_URL}/dashboard/settings`,
+    customer: row.stripe_customer_id, configuration: portalConfiguration(),
+    return_url: `${currentAppUrl(process.env)}/dashboard/settings`,
   });
   if (new URL(session.url).origin !== 'https://billing.stripe.com') throw new Error('Invalid portal URL.');
   return session.url;

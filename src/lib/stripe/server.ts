@@ -1,24 +1,31 @@
 import 'server-only';
 import Stripe from 'stripe';
-import { assertTestEnvironment } from '../billing/test-environment.mjs';
-import { SANDBOX_ACCOUNT } from '../billing/plans';
+import { REKODJA_ACCOUNT } from '../billing/plans';
+import { billingEnvironmentWithKey } from '../billing/test-environment.mjs';
 
 let client: Stripe | undefined;
 
+/** A Stripe client for this deployment, or a throw when there is none.
+ *
+ * The key must match the environment: a test key outside the Test project, a
+ * live key on a developer machine, or a key belonging to another account are
+ * all refused rather than quietly acted on.
+ */
 export function stripeServer(): Stripe {
-  const key = process.env.STRIPE_SECRET_KEY;
-  if (!key || !key.startsWith('sk_test_')) {
-    throw new Error('A Stripe Sandbox secret key is required.');
+  const environment = billingEnvironmentWithKey(process.env);
+  if (!environment) {
+    throw new Error('A Stripe secret key matching this environment is required.');
   }
-  assertTestEnvironment(process.env);
-  client ??= new Stripe(key);
+  client ??= new Stripe(process.env.STRIPE_SECRET_KEY as string);
   return client;
 }
 
 export async function verifiedStripe(): Promise<Stripe> {
   const stripe = stripeServer();
-  // A sk_test prefix alone does not identify the intended Sandbox account.
+  // A key prefix alone does not identify the intended account: any other
+  // Stripe account's key satisfies it. Stripe reuses the account id across
+  // test and live mode, so this single check holds in both.
   const account = await stripe.accounts.retrieveCurrent();
-  if (account.id !== SANDBOX_ACCOUNT) throw new Error('Wrong Stripe Sandbox account.');
+  if (account.id !== REKODJA_ACCOUNT) throw new Error('Wrong Stripe account.');
   return stripe;
 }
