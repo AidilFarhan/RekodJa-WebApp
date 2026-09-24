@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { gmailAccessError } from '@/lib/billing/server';
 import { scanGmail, GMAIL_READONLY_SCOPE } from '@/lib/gmail/scan-engine';
 import type { ApplicationRecord } from '@/lib/gmail/scan-core';
 import { autoConfirmAction, autoConfirmEligible, confirmCandidate } from '@/lib/gmail/confirm';
@@ -9,7 +10,7 @@ export const runtime = 'nodejs';
 export const maxDuration = 300;
 
 /*
- * POST /api/gmail/scan — read-only scan. No DB writes.
+ * POST /api/gmail/scan — reads Gmail and persists review candidates.
  *
  * Headers: Authorization: Bearer <GIS access token with gmail.readonly>
  * Returns: { email, scanned, skipped, candidates }
@@ -18,6 +19,8 @@ export async function POST(request: NextRequest) {
   const client = await supabase();
   const { data: { user } } = await client.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+  const accessError = await gmailAccessError(client, user.id);
+  if (accessError) return accessError;
 
   const token = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '');
   if (!token) return NextResponse.json({ error: 'Google authorization required.' }, { status: 400 });

@@ -289,3 +289,42 @@ html[data-theme=dark] .settings-sections p,html[data-theme=dark] .settings-secti
 html[data-theme=dark] .settings-sections .subtle-tag{color:#d5dbe3;border-color:#555;background:#151515}
 html[data-theme=dark] .settings-sections .button{background:#151515;color:#f7f7f7;border-color:#595959}
 html[data-theme=dark] .rate-metric-value,html[data-theme=dark] .rate-metric-value text{color:#fff;fill:#fff}
+
+/* Plan card (Settings). Reuses the stage-select palette so a billing state
+   reads the same as an application stage. */
+.settings-sections>section.plan-section{display:block;align-items:stretch}
+.plan-card{display:flex;flex-direction:column;gap:18px;max-width:620px;margin-top:4px}
+.plan-status{display:flex;align-items:center;gap:10px}
+.settings-sections .plan-headline{font-size:13px;color:#23272f}
+.plan-state{display:inline-flex;align-items:center;padding:3px 8px;border-radius:4px;font-size:10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
+.plan-state-free{background:#eef0f4;color:#5b6472}
+.plan-state-trial{background:#e7eefc;color:#244e9b}
+.plan-state-active{background:#e5f3e8;color:#176b35}
+.plan-state-past-due{background:#fae8e8;color:#982b2b}
+.plan-state-canceled{background:#eeeeec;color:#666}
+.plan-facts{display:flex;flex-wrap:wrap;gap:8px 34px;margin:0}
+.plan-facts dt{font-size:11px;color:#626976;margin-bottom:2px}
+.plan-facts dd{margin:0;font-size:13px;color:#23272f}
+.plan-options{display:flex;flex-direction:column;gap:10px;margin:0;padding:12px 14px;border:1px solid #e5e7eb;border-radius:6px}
+.plan-options legend{padding:0 6px;font-size:11px;color:#626976}
+.plan-options:disabled{opacity:.6}
+.plan-option{display:flex;align-items:center;gap:10px;margin:0;font-size:13px;font-weight:400;color:#23272f;cursor:pointer}
+.plan-option input{width:auto;margin:0;padding:0;accent-color:#14213d}
+.plan-option-price{margin-left:auto;font-size:12px;color:#626976}
+.plan-notes{list-style:none;display:flex;flex-direction:column;gap:5px;margin:0;padding:0;font-size:12px;color:#626976}
+.plan-notes li{display:flex;gap:8px}
+.plan-notes li::before{content:'\00b7';color:#a3aab7}
+.settings-sections .plan-feedback{font-size:12px;color:#23272f}
+.plan-error{color:#a53535}
+.plan-section .sync-dialog .button-row{justify-content:center}
+html[data-theme=dark] .settings-sections .plan-headline{color:#f4f4f4}
+html[data-theme=dark] .plan-facts dd,html[data-theme=dark] .plan-option{color:#f4f4f4}
+html[data-theme=dark] .plan-facts dt,html[data-theme=dark] .plan-notes,html[data-theme=dark] .plan-option-price,html[data-theme=dark] .plan-options legend{color:#9baabd}
+html[data-theme=dark] .plan-options{border-color:#303030}
+html[data-theme=dark] .plan-state-free,html[data-theme=dark] .plan-state-canceled{background:#2b3340;color:#c0c9d4}
+html[data-theme=dark] .plan-state-trial{background:#1d2d48;color:#b8d2ff}
+html[data-theme=dark] .plan-state-active{background:#193729;color:#aae4bd}
+html[data-theme=dark] .plan-state-past-due{background:#3b2229;color:#ffb5bf}
+html[data-theme=dark] .settings-sections .plan-feedback{color:#f4f4f4}
+html[data-theme=dark] .settings-sections .plan-error{color:#ffb5bf}
+html[data-theme=dark] .plan-option input{accent-color:#8ab4e8}

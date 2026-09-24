@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
+import { billingTestEnabled, userHasPro } from '@/lib/billing/server';
 import { followUpActions, type DashboardApplication, type DashboardEvent } from '@/lib/dashboard';
 import WorkspaceNav from './nav';
 import SettingsLink from './settings-link';
@@ -22,7 +23,7 @@ export default async function Workspace({ children }: { children: React.ReactNod
   ]) : [{ data: null }, { data: null }, { data: null }, { data: null }];
   const name = profile?.display_name || 'Your account';
   const actionsCount = followUpActions((applications ?? []) as DashboardApplication[], (events ?? []) as DashboardEvent[]).length;
-  const subscribed = false; // No billing yet (v2). Flip to the real subscription check when payments exist.
+  const subscribed = Boolean(user && billingTestEnabled() && await userHasPro(client, user.id));
   const spreadsheetUrl = connection?.spreadsheet_id ? `https://docs.google.com/spreadsheets/d/${encodeURIComponent(connection.spreadsheet_id)}/edit` : undefined;
   return <SidebarController><aside className="workspace-sidebar"><WorkspaceNav actionsCount={actionsCount} spreadsheetUrl={spreadsheetUrl} /><div className="sidebar-bottom"><SettingsLink /><p>My Lord! Uplift my heart for me and make my task easy and remove the impediment from my tongue so people may understand my speech. Surah Taha: 25-28</p></div></aside><div className="workspace-body"><div className="workspace-topbar"><div className="topbar-left"><SidebarToggleButton /><Link className="workspace-brand" href="/dashboard/overview"><span className="wordmark">Rekod<span className="wordmark-ja">Ja</span></span> <small>{subscribed ? 'Pro' : 'Free'}</small></Link></div><div className="topbar-right"><ThemeToggle /><NotificationsBell issues={(issues ?? []) as { id: string; message: string }[]} /><Link href="/dashboard/settings"><span className="avatar">{name.split(/\s+/).slice(0,2).map((part: string) => part[0]).join('').toUpperCase()}</span><span className="topbar-name">{name}</span></Link></div></div><div className="workspace-content">{children}</div></div></SidebarController>;
 }

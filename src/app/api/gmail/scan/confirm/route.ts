@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { gmailAccessError } from '@/lib/billing/server';
 import { stages, type Stage } from '@/lib/dashboard';
 import { confirmCandidate } from '@/lib/gmail/confirm';
 
@@ -32,6 +33,8 @@ export async function POST(request: NextRequest) {
   const client = await supabase();
   const { data: { user } } = await client.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+  const accessError = await gmailAccessError(client, user.id);
+  if (accessError) return accessError;
 
   const token = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '') || '';
   const body = (await request.json().catch(() => ({}))) as {

@@ -1,3 +1,44 @@
+## Local test environment
+
+Gunakan launcher ini untuk menguji Stripe Sandbox dan Supabase RekodJa Test secara berasingan daripada production.
+
+### Semak konfigurasi sahaja
+
+Arahan ini hanya menyemak konfigurasi dan tidak menjalankan aplikasi:
+
+```powershell
+Set-Location "C:\Users\aidil\OneDrive\Desktop\JOB TRACKER\pro"
+npm run dev:test:check
+```
+
+Launcher membaca **hanya** `.env.stripe-test.local`, tanpa fallback daripada
+`.env.local` atau environment aplikasi yang diwarisi. Ia menyalin kod ke folder
+sementara tanpa fail `.env*`, kemudian menjalankan Next.js pada port 3002.
+Hanya environment sistem yang dibenarkan diwarisi. Jangan guna `npm run dev`
+untuk ujian Stripe kerana arahan biasa itu boleh memuat `.env.local`.
+
+`--check` menyemak konfigurasi sahaja; ia **tidak** membuktikan key sah di server,
+Google Picker berfungsi, webhook diterima atau pembayaran berjaya. Publishable
+key yang opaque tidak boleh dipadankan dengan project secara offline. Admin
+client memerlukan legacy `service_role` key projek Test dan URL localhost tepat.
+
+Selepas arahan untuk menjalankan aplikasi diberi:
+
+```powershell
+Set-Location "C:\Users\aidil\OneDrive\Desktop\JOB TRACKER\pro"
+npm run dev:test
+```
+
+Output launcher hanya label tetap `PASS` / `FAIL`; error mentah aplikasi tidak
+dicetak kerana ia mungkin mengandungi secrets. `PORT_3002_AVAILABLE: FAIL`
+bermaksud port sedang digunakan. Jangan hentikan proses yang belum dikenal pasti.
+Launcher menggunakan snapshot kod: hentikan terminal launcher dengan Ctrl+C
+dan jalankan semula selepas mengubah kod atau konfigurasi.
+
+**Status billing:** Checkout masih dikunci (HTTP 503). Ini belum integrasi Stripe
+lengkap; webhook, portal, UI Pro dan ujian lifecycle Sandbox masih diperlukan.
+Jangan deploy atau push branch ini ke `main`.
+
 # Job Tracker Pro — production milestones 1–2
 
 Independent Next.js App Router / TypeScript app. No prototype code or mock data is imported. It includes Google identity sign-in, private profiles, owner-scoped application/event data, and a narrowly scoped one-way Google Sheet import.
@@ -7,7 +48,7 @@ Independent Next.js App Router / TypeScript app. No prototype code or mock data 
 Requires Node.js 20.9 or newer (Node 22 LTS recommended).
 
 ```powershell
-cd C:\Users\aidil\OneDrive\Desktop\job-tracker-extension\pro
+Set-Location "C:\Users\aidil\OneDrive\Desktop\JOB TRACKER\pro"
 npm ci
 Copy-Item .env.example .env.local
 ```

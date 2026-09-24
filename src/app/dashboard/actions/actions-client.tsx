@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import ProGateButton from '../pro-gate-button';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { requestGoogleToken } from '@/lib/google-token';
@@ -180,7 +181,8 @@ function MatchedRow({ item }: { item: AttentionItem }) {
   </article>;
 }
 
-export default function ActionsClient({ items, applications, clientId, resolved }: {
+export default function ActionsClient({ items, applications, clientId, resolved, hasPro }: {
+  hasPro: boolean;
   items: AttentionItem[];
   applications: ActionApplication[];
   clientId: string;
@@ -199,6 +201,7 @@ export default function ActionsClient({ items, applications, clientId, resolved 
     .sort((a, b) => (sort === 'Latest' ? recency(b) - recency(a) : recency(a) - recency(b)));
 
   async function scan() {
+    if (!hasPro) return;
     setScanning(true);
     setMessage('');
     try {
@@ -220,7 +223,7 @@ export default function ActionsClient({ items, applications, clientId, resolved 
   return <section className="actions-page">
     <div className="tabs-row">
       <h1>Action Center</h1>
-      <button className="button primary" disabled={scanning} onClick={scan}>{scanning ? 'Scanning…' : 'Scan Gmail'}</button>
+      {hasPro ? <button className="button primary" disabled={scanning} onClick={scan}>{scanning ? 'Scanning…' : 'Scan Gmail'}</button> : <ProGateButton />}
     </div>
     <div className="tabs-row">
       <div className="tabs" aria-label="Action categories">{TABS.map((tab) => <button key={tab.label} aria-pressed={filter === tab.label} onClick={() => setFilter(tab.label)}>{tab.label}<span>{countFor(tab.type)}</span></button>)}</div>

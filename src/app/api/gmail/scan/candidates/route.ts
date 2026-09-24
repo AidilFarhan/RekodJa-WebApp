@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { gmailAccessError } from '@/lib/billing/server';
 
 export const runtime = 'nodejs';
 
@@ -11,6 +12,8 @@ export async function GET() {
   const client = await supabase();
   const { data: { user } } = await client.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+  const accessError = await gmailAccessError(client, user.id);
+  if (accessError) return accessError;
   const { data, error } = await client
     .from('gmail_scan_candidates')
     .select('id, message_id, thread_id, email, internal_date_ms, subject, sender_from, sender_email, snippet, suggested_company, suggested_role, suggested_status, event_type, matched_application_id, review_state, confirmed_stage, created_at')
@@ -29,6 +32,8 @@ export async function PATCH(request: NextRequest) {
   const client = await supabase();
   const { data: { user } } = await client.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+  const accessError = await gmailAccessError(client, user.id);
+  if (accessError) return accessError;
   const body = (await request.json().catch(() => ({}))) as { messageId?: string; reviewState?: string };
   const messageId = String(body.messageId ?? '').trim();
   if (!messageId || !['dismissed', 'pending'].includes(body.reviewState ?? '')) {

@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { configuration } from './lib/config';
 
 export async function proxy(request: NextRequest) {
+  // Stripe authenticates with its signed raw body, not a user's login cookie.
+  if (request.nextUrl.pathname === '/api/billing/webhook') return NextResponse.next();
   // Supabase falls back to its Site URL when flow state is lost; if that URL is
   // the bare origin, the auth code lands on "/" instead of /auth/callback.
   // Forward it so sign-in can still complete.

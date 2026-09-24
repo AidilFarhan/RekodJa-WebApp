@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "next dev -p 3002",
+    "dev:test": "node scripts/dev-test.mjs",
+    "dev:test:check": "node scripts/dev-test.mjs --check",
     "build": "next build",
     "start": "next start -p 3002",
     "typecheck": "tsc --noEmit",
@@ -17,7 +19,8 @@
     "next": "^16.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "server-only": "^0.0.1"
+    "server-only": "^0.0.1",
+    "stripe": "22.6.0"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.3.14",
