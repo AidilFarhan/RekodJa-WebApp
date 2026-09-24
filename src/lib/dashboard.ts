@@ -147,7 +147,7 @@ export const ATTENTION_TABS: { label: string; type: AttentionType }[] = [
  * application bound to it AND the scanner could not identify both company and
  * role. Once company and role are detected the email is understood even
  * without an application row, so it surfaces as a review or recruiter action.
- * (DESIGN-ACTION-CENTER.md OD1, refined 2026-09-23 from user feedback.)
+ * (GMAIL-DESIGN-ACTION-CENTER.md OD1, refined 2026-09-23 from user feedback.)
  *
  * The remaining split: an employer-response stage is a decision the user must
  * act on (recruiter); everything else needs a look (review).

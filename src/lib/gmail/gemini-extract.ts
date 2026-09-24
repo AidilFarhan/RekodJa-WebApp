@@ -1,7 +1,7 @@
 /*
  * Gemini extraction fallback for Gmail scan candidates.
  *
- * DESIGN-ACTION-CENTER.md §7: the model may extract a company name from an
+ * GMAIL-DESIGN-ACTION-CENTER.md §7: the model may extract a company name from an
  * email, but it may never choose an application (D3). Its output only feeds
  * the deterministic matcher. Everything returned is validated server-side
  * against a schema; invalid or suspicious output is discarded.
