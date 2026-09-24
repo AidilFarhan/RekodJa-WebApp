@@ -8,6 +8,11 @@ export const TRIAL_DAYS = 14;
 export const SANDBOX_ACCOUNT = 'acct_1UJBHNIz7rRwXn6f';
 export const SANDBOX_PORTAL = 'bpc_1UJHEgIz7rRwXn6fkqSWAKnT';
 export const SANDBOX_PRODUCT = 'prod_VJp91FLk0SMjRJ';
+// The cards-only payment method configuration is resolved BY NAME, not id, at
+// every call site. Keep that name in one place: if the app and the sandbox
+// checker disagree the checker passes while Checkout refuses, which is hard to
+// diagnose from the outside.
+export const SANDBOX_CARDS_CONFIG_NAME = 'RekodJa Sandbox cards only';
 export const PRO_REQUIRED_MESSAGE = "You haven't subscribed to Pro yet, please subscribe to use this feature";
 export function isPlanKey(value: unknown): value is PlanKey {
   return typeof value === 'string' && Object.hasOwn(PLANS, value);

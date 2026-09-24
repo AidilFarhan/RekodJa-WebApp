@@ -2,7 +2,7 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Stripe from 'stripe';
 import { loadTestEnv } from './dev-test.mjs';
-import { SANDBOX_ACCOUNT, SANDBOX_PORTAL } from '../src/lib/billing/plans.ts';
+import { SANDBOX_ACCOUNT, SANDBOX_CARDS_CONFIG_NAME, SANDBOX_PORTAL } from '../src/lib/billing/plans.ts';
 
 // Read-only unless this exact, explicit setup switch is supplied. Never prints
 // provider exceptions or credentials. Uses neither inherited keys nor .env.local.
@@ -20,11 +20,11 @@ try {
   console.log('SANDBOX_ACCOUNT: PASS');
   stage = 'CARDS_ONLY_CONFIGURATION';
   const configs = await stripe.paymentMethodConfigurations.list({ limit: 100 });
-  let config = configs.data.find(item => item.name === 'RekodJa Sandbox cards only' && item.active);
+  let config = configs.data.find(item => item.name === SANDBOX_CARDS_CONFIG_NAME && item.active);
   if (configs.has_more) throw new Error('Review configuration pagination');
   if (configure && !config) {
     config = await stripe.paymentMethodConfigurations.create({
-      name: 'RekodJa Sandbox cards only', card: { display_preference: { preference: 'on' } },
+      name: SANDBOX_CARDS_CONFIG_NAME, card: { display_preference: { preference: 'on' } },
       apple_pay: { display_preference: { preference: 'off' } },
       google_pay: { display_preference: { preference: 'off' } },
       link: { display_preference: { preference: 'off' } },

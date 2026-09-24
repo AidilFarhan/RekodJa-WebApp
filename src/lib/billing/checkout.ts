@@ -3,7 +3,7 @@ import type Stripe from 'stripe';
 import { verifiedStripe } from '../stripe/server';
 import { supabaseAdmin } from '../supabase-admin';
 import { BillingError } from './server';
-import { isTerminalSubscription, type PlanKey, TRIAL_DAYS } from './plans';
+import { isTerminalSubscription, SANDBOX_CARDS_CONFIG_NAME, type PlanKey, TRIAL_DAYS } from './plans';
 import { validatePrice, resourceId } from './stripe-state';
 import { TEST_APP_URL } from './test-environment.mjs';
 
@@ -30,7 +30,7 @@ export async function resolvePrice(stripe: Stripe, plan: PlanKey) {
 }
 export async function cardsConfiguration(stripe: Stripe) {
   const configs = await stripe.paymentMethodConfigurations.list({ limit: 100 });
-  const config = configs.data.find(item => item.name === 'RekodJa Sandbox cards only' && item.active && !item.livemode);
+  const config = configs.data.find(item => item.name === SANDBOX_CARDS_CONFIG_NAME && item.active && !item.livemode);
   if (!config || configs.has_more || config.card?.display_preference.value !== 'on') throw new Error('Cards-only Sandbox configuration is not ready.');
   for (const [name, value] of Object.entries(config)) {
     if (name !== 'card' && value && typeof value === 'object' && 'display_preference' in value &&
