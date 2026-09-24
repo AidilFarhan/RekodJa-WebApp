@@ -72,16 +72,28 @@ if (described.length === 0) console.log('payment method configurations: none fou
 for (const { item, others, cardsOnly } of described) {
   console.log(`configuration: name="${item.name}"  id=${item.id}  livemode=${item.livemode}  cardsOnly=${cardsOnly}  otherMethods=[${others.join(', ')}]`);
 }
-const ready = described.find(entry => entry.cardsOnly && entry.item.livemode === live && entry.item.active);
+let ready = described.find(entry => entry.cardsOnly && entry.item.livemode === live && entry.item.active);
 if (ready) {
   console.log(`usable cards-only configuration: "${ready.item.name}"`);
 } else if (create && wanted) {
-  const created = await stripe.paymentMethodConfigurations.create({
-    name: wanted,
-    card: { display_preference: { preference: 'on' } },
-  });
-  console.log(`configuration: CREATED name="${created.name}"  id=${created.id}  livemode=${created.livemode}`);
-  console.log(`Now use the same name in Vercel:  STRIPE_CARDS_CONFIG_NAME=${created.name}`);
+  try {
+    const created = await stripe.paymentMethodConfigurations.create({
+      name: wanted,
+      card: { display_preference: { preference: 'on' } },
+    });
+    // Recompute, so the summary below reports the configuration that now
+    // exists rather than the state from before it did.
+    ready = { item: created };
+    console.log(`configuration: CREATED name="${created.name}"  id=${created.id}  livemode=${created.livemode}`);
+    console.log(`Now use the same name in Vercel:  STRIPE_CARDS_CONFIG_NAME=${created.name}`);
+  } catch (error) {
+    // A restricted key needs "Payment method configurations: write". Without
+    // it, Stripe refuses and the raw failure is easy to miss.
+    console.log('configuration: CREATE FAILED');
+    console.log(`  reason: ${error?.message ?? error}`);
+    console.log(`  type:   ${error?.type ?? 'unknown'}   code: ${error?.code ?? 'none'}`);
+    process.exitCode = 1;
+  }
 } else if (create) {
   console.log('Nothing created: set STRIPE_CARDS_CONFIG_NAME to the name you want, then run again with --create.');
 } else {
@@ -97,5 +109,12 @@ for (const item of portals.data) {
 
 console.log('');
 console.log(`Values for Vercel (${mode}):`);
-console.log('  STRIPE_CARDS_CONFIG_NAME=<the name of the configuration with ONLY cards enabled>');
+// Print the real name when there is one. A placeholder here reads like a value
+// and invites the wrong answer.
+if (ready) {
+  console.log(`  STRIPE_CARDS_CONFIG_NAME=${ready.item.name}`);
+} else {
+  console.log('  STRIPE_CARDS_CONFIG_NAME= NONE YET — re-run with --create to make one');
+}
+if (portals.data.length === 0) console.log('  STRIPE_PORTAL_CONFIGURATION= NONE YET — configure the customer portal first');
 for (const item of portals.data) console.log(`  STRIPE_PORTAL_CONFIGURATION=${item.id}`);
