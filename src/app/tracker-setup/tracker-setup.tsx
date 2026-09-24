@@ -170,25 +170,6 @@ export default function TrackerSetup({ config, connections }: { config: Config; 
     }
   }
 
-  async function importConnection(connectionId: string) {
-    setBusy(true); setMessage('');
-    try {
-      token.current = await authorize();
-      setImporting(true);
-      const response = await fetch(`/api/sheet-connections/${connectionId}/import`, { method: 'POST', headers: { Authorization: `Bearer ${token.current}` } });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || 'Import failed.');
-      if (result.removals && result.removals.length > 0) {
-        setImporting(false);
-        setRemovals({ connectionId, items: result.removals });
-        return;
-      }
-      setMessage(importSummary(result));
-      window.setTimeout(() => window.location.assign('/dashboard/overview'), result.skipped > 0 ? 4000 : 900);
-    } catch (error) { setImporting(false); setMessage(error instanceof Error ? error.message : 'Import failed.'); }
-    finally { setBusy(false); }
-  }
-
   return <div>
     <button disabled={busy} onClick={openPicker}>{busy ? 'Working…' : 'Connect or import your tracker'}</button>
     {picked && <div className="connection-panel">
@@ -197,7 +178,7 @@ export default function TrackerSetup({ config, connections }: { config: Config; 
       <select id="sheet-name" value={sheetName} onChange={(event) => setSheetName(event.target.value)}>{picked.tabs.map((tab) => <option key={tab}>{tab}</option>)}</select>
       <button disabled={!sheetName || busy} onClick={saveConnection}>{connections.length > 0 ? 'Replace connected tracker with this tab' : 'Connect this tab'}</button>
     </div>}
-    {connections.length > 0 && <div className="connections"><h2>Connected spreadsheets</h2>{connections.map((connection) => <div className="connection-row" key={connection.id}><span><strong>{connection.spreadsheet_name}</strong><small>{connection.sheet_name}</small></span><button disabled={busy} onClick={() => importConnection(connection.id)}>Import from Sheet</button></div>)}</div>}
+    {connections.length > 0 && <div className="connections"><h2>Connected spreadsheets</h2>{connections.map((connection) => <div className="connection-row" key={connection.id}><span><strong>{connection.spreadsheet_name}</strong><small>{connection.sheet_name}</small></span></div>)}</div>}
     {message && <p className="message" role="status">{message}</p>}
     {importing && <div className="importing-overlay" role="status" aria-live="polite"><div className="importing-dialog"><img className="cat-img" src="/cat-run.gif" alt="Running cat" /><p>Importing your spreadsheet…</p><div className="importing-track" aria-hidden="true"><span/><span/><span/></div></div></div>}
     {removals && <RemovalsConfirm connectionId={removals.connectionId} removals={removals.items} onDone={() => { setRemovals(null); window.location.assign('/dashboard/overview'); }} />}
