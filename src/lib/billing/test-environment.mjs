@@ -32,6 +32,29 @@ export function assertTestEnvironment(env) {
  */
 export const LIVE_APP_URL = 'https://app.rekodja.com';
 
+/** The Sandbox account. A Stripe Sandbox is an account of its own, with its own
+ * id, so this is NOT the same as the live account below.
+ */
+export const SANDBOX_ACCOUNT = 'acct_1UJBHNIz7rRwXn6f';
+
+/** The live account for this product. */
+export const LIVE_ACCOUNT = 'acct_1UJBFEEcRxlOqjok';
+
+/** The account an environment must belong to, or null when it cannot be
+ * determined.
+ *
+ * Pinning per environment is what stops a key from another Stripe account
+ * being used: a key prefix does not identify an account, and a live key does
+ * not belong to the Sandbox account.
+ * @param {Record<string, string | undefined>} env
+ */
+export function accountFor(env) {
+  const environment = billingEnvironment(env);
+  if (environment === 'test') return SANDBOX_ACCOUNT;
+  if (environment === 'live') return LIVE_ACCOUNT;
+  return null;
+}
+
 /** Which environment this process is, or null when it is neither the isolated
  * Test project nor the production app. Billing refuses anything unrecognised,
  * so a preview deployment cannot reach Stripe by accident.
@@ -58,15 +81,20 @@ export function currentAppUrl(env) {
   throw new Error('Billing requires a recognised environment.');
 }
 
-/** Which mode a Stripe secret key belongs to, or null when it is not a Stripe
- * secret key at all.
+/** Which mode a Stripe key belongs to, or null when it is not a key this app
+ * may use.
+ *
+ * Restricted keys (`rk_`) are accepted as well as secret keys (`sk_`). A
+ * restricted key is the least-privilege option and is the better choice where
+ * the account grants only the billing permissions this app needs. A
+ * publishable key (`pk_`) is never a credential and is refused.
  * @param {string | undefined} key
  * @returns {'test' | 'live' | null}
  */
 export function stripeKeyMode(key) {
   if (typeof key !== 'string') return null;
-  if (key.startsWith('sk_test_')) return 'test';
-  if (key.startsWith('sk_live_')) return 'live';
+  if (key.startsWith('sk_test_') || key.startsWith('rk_test_')) return 'test';
+  if (key.startsWith('sk_live_') || key.startsWith('rk_live_')) return 'live';
   return null;
 }
 

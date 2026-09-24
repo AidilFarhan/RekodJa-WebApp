@@ -5,10 +5,6 @@ export const PLANS = {
 } as const;
 export type PlanKey = keyof typeof PLANS;
 export const TRIAL_DAYS = 14;
-// The account id is the same in test and live mode: Stripe does not issue a
-// second account for a live key. It is named for the account, not the mode,
-// because pinning it is what stops another account's key from being used.
-export const REKODJA_ACCOUNT = 'acct_1UJBHNIz7rRwXn6f';
 export const SANDBOX_PORTAL = 'bpc_1UJHEgIz7rRwXn6fkqSWAKnT';
 export const SANDBOX_PRODUCT = 'prod_VJp91FLk0SMjRJ';
 // The cards-only payment method configuration is resolved BY NAME, not id, at

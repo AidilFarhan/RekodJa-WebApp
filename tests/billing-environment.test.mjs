@@ -4,12 +4,13 @@ import {
   LIVE_APP_URL,
   TEST_APP_URL,
   TEST_SUPABASE_URL,
+  accountFor,
   billingEnvironment,
   billingEnvironmentWithKey,
   currentAppUrl,
   stripeKeyMode,
 } from '../src/lib/billing/test-environment.mjs';
-import { REKODJA_ACCOUNT, SANDBOX_CARDS_CONFIG_NAME } from '../src/lib/billing/plans.ts';
+import { SANDBOX_CARDS_CONFIG_NAME } from '../src/lib/billing/plans.ts';
 import { stripeObject } from '../src/lib/billing/stripe-objects.mjs';
 
 const TEST_ENV = {
@@ -39,10 +40,15 @@ test('an unrecognised deployment is refused', () => {
   assert.equal(billingEnvironment({}), null);
 });
 
-test('only Stripe secret key prefixes are recognised', () => {
+test('only key prefixes that are a secret or a restricted key are recognised', () => {
   assert.equal(stripeKeyMode('sk_test_example'), 'test');
   assert.equal(stripeKeyMode('sk_live_example'), 'live');
+  // Restricted keys are the least-privilege option, so they are accepted too.
+  assert.equal(stripeKeyMode('rk_test_example'), 'test');
+  assert.equal(stripeKeyMode('rk_live_example'), 'live');
+  // A publishable key is never a credential.
   assert.equal(stripeKeyMode('pk_live_example'), null);
+  assert.equal(stripeKeyMode('pk_test_example'), null);
   assert.equal(stripeKeyMode('sk_example'), null);
   assert.equal(stripeKeyMode(undefined), null);
 });
@@ -55,6 +61,9 @@ test('a key that does not match its environment is refused', () => {
   // subscriptions Stripe never bills.
   assert.equal(billingEnvironmentWithKey({ ...TEST_ENV, STRIPE_SECRET_KEY: 'sk_live_example' }), null);
   assert.equal(billingEnvironmentWithKey({ ...LIVE_ENV, STRIPE_SECRET_KEY: 'sk_test_example' }), null);
+  // A restricted key is judged by the same rule, not waved through.
+  assert.equal(billingEnvironmentWithKey({ ...TEST_ENV, STRIPE_SECRET_KEY: 'rk_live_example' }), null);
+  assert.equal(billingEnvironmentWithKey({ ...LIVE_ENV, STRIPE_SECRET_KEY: 'rk_test_example' }), null);
   assert.equal(billingEnvironmentWithKey({ ...LIVE_ENV, STRIPE_SECRET_KEY: undefined }), null);
 });
 
@@ -79,8 +88,11 @@ test('a mode-specific object falls back to the Sandbox value only in the Test pr
   );
 });
 
-test('the account pin is mode-independent', () => {
-  // Stripe reuses one account id across test and live mode, so this single pin
-  // protects both and is what stops another account's key from being used.
-  assert.match(REKODJA_ACCOUNT, /^acct_[A-Za-z0-9]+$/);
+test('each environment pins its own Stripe account', () => {
+  // A Stripe Sandbox is an account of its own, so the live id differs. Assuming
+  // one shared id would make a perfectly valid live key look wrong.
+  assert.match(accountFor(TEST_ENV), /^acct_[A-Za-z0-9]+$/);
+  assert.match(accountFor(LIVE_ENV), /^acct_[A-Za-z0-9]+$/);
+  assert.notEqual(accountFor(TEST_ENV), accountFor(LIVE_ENV));
+  assert.equal(accountFor({}), null);
 });

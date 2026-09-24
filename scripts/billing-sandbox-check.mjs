@@ -2,7 +2,8 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Stripe from 'stripe';
 import { loadTestEnv } from './dev-test.mjs';
-import { REKODJA_ACCOUNT, SANDBOX_CARDS_CONFIG_NAME, SANDBOX_PORTAL } from '../src/lib/billing/plans.ts';
+import { SANDBOX_CARDS_CONFIG_NAME, SANDBOX_PORTAL } from '../src/lib/billing/plans.ts';
+import { SANDBOX_ACCOUNT } from '../src/lib/billing/test-environment.mjs';
 
 // Read-only unless this exact, explicit setup switch is supplied. Never prints
 // provider exceptions or credentials. Uses neither inherited keys nor .env.local.
@@ -16,7 +17,7 @@ try {
   console.log('STRIPE_KEY_PRESENT: PASS');
   stage = 'SANDBOX_ACCOUNT';
   const stripe = new Stripe(env.STRIPE_SECRET_KEY);
-  if ((await stripe.accounts.retrieveCurrent()).id !== REKODJA_ACCOUNT) throw new Error('Wrong account');
+  if ((await stripe.accounts.retrieveCurrent()).id !== SANDBOX_ACCOUNT) throw new Error('Wrong account');
   console.log('SANDBOX_ACCOUNT: PASS');
   stage = 'CARDS_ONLY_CONFIGURATION';
   const configs = await stripe.paymentMethodConfigurations.list({ limit: 100 });
