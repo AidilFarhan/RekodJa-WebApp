@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
   const client = await supabase();
   const { data: { user } } = await client.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
-  const accessError = await gmailAccessError(client, user.id);
+  const accessError = await gmailAccessError(client, user);
   if (accessError) return accessError;
 
   const token = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '');

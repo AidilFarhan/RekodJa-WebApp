@@ -13,12 +13,16 @@ import { parseEnv } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
 import { isTestLegacyKey } from '../src/lib/billing/test-environment.mjs';
+import { parseBetaEmails, parseBetaEndsAt } from '../src/lib/billing/beta.ts';
 
 const appKeys = new Set([
   'SUPABASE_URL',
   'SUPABASE_ANON_KEY',
   'SUPABASE_SERVICE_ROLE_KEY',
   'APP_URL',
+  'BETA_TESTER_EMAILS',
+  'BETA_ENDS_AT',
+  'GMAIL_GATE_ENFORCED',
   'STRIPE_SECRET_KEY',
   'STRIPE_WEBHOOK_SECRET',
   'GOOGLE_OAUTH_CLIENT_ID',
@@ -114,6 +118,32 @@ export function validateTestEnv(values, report = () => {}) {
   check(
     'APP_URL_LOCALHOST_3002',
     values.APP_URL === 'http://localhost:3002',
+    report,
+  );
+
+  // A deadline the app cannot read is treated as "beta over", so a typo here
+  // would silently lock testers out. Catch it at launch instead.
+  check(
+    'BETA_ENDS_AT_PARSES',
+    !values.BETA_ENDS_AT || parseBetaEndsAt(values.BETA_ENDS_AT) !== null,
+    report,
+  );
+
+  // Labels only: the report never echoes an address.
+  check(
+    'BETA_TESTER_EMAILS_SHAPE',
+    parseBetaEmails(values.BETA_TESTER_EMAILS).every(address =>
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address),
+    ),
+    report,
+  );
+
+  // Only '1' switches the production gate on. Anything else reads as off, so a
+  // value like 'true' would look active while leaving every user ungated.
+  check(
+    'GMAIL_GATE_ENFORCED_FLAG',
+    values.GMAIL_GATE_ENFORCED === undefined ||
+      ['0', '1'].includes(values.GMAIL_GATE_ENFORCED),
     report,
   );
 }

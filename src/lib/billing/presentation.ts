@@ -11,18 +11,25 @@ export type BillingView = {
   cancelAtPeriodEnd: boolean;
   hasUsedTrial: boolean;
   hasBillingAccount: boolean;
+  /** Preformatted date the free beta access ends, or null when this user is
+   * not a beta tester. Already formatted so server and client cannot disagree
+   * about the timezone.
+   */
+  betaEndsLabel: string | null;
 };
 
 /** Closed vocabulary for the Plan card. Every Stripe status without Pro access
- * is reported as Canceled so the card never leaks raw provider values. */
-export type BillingState = 'Free' | 'Trial' | 'Active' | 'Past due' | 'Canceled';
+ * is reported as Canceled so the card never leaks raw provider values. Beta is
+ * shown only when there is no subscription to describe.
+ */
+export type BillingState = 'Free' | 'Beta' | 'Trial' | 'Active' | 'Past due' | 'Canceled';
 
-export function subscriptionState(status: string | null): BillingState {
+export function subscriptionState(status: string | null, betaEligible = false): BillingState {
   if (status === 'trialing') return 'Trial';
   if (status === 'active') return 'Active';
   if (status === 'past_due') return 'Past due';
   if (status) return 'Canceled';
-  return 'Free';
+  return betaEligible ? 'Beta' : 'Free';
 }
 
 export function stateSlug(state: BillingState): string {
@@ -58,10 +65,12 @@ export type PlanCard = {
   canCancel: boolean;
   canChangePlan: boolean;
   currentPlanKey: string | null;
+  betaEnds: string | null;
 };
 
 export function planCard(view: BillingView, formatDate: (value: string) => string): PlanCard {
-  const state = subscriptionState(view.status);
+  const betaEligible = Boolean(view.betaEndsLabel);
+  const state = subscriptionState(view.status, betaEligible);
   const running = ['trialing', 'active', 'past_due'].includes(view.status ?? '');
   return {
     state,
@@ -81,6 +90,7 @@ export function planCard(view: BillingView, formatDate: (value: string) => strin
     // scheduled, matching the server rule in manageSubscription.
     canChangePlan: canChangePlan(view.status ?? '', view.cancelAtPeriodEnd),
     currentPlanKey: view.planKey,
+    betaEnds: state === 'Beta' ? view.betaEndsLabel : null,
   };
 }
 

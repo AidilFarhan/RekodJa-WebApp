@@ -12,7 +12,7 @@ export async function GET() {
   const client = await supabase();
   const { data: { user } } = await client.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
-  const accessError = await gmailAccessError(client, user.id);
+  const accessError = await gmailAccessError(client, user);
   if (accessError) return accessError;
   const { data, error } = await client
     .from('gmail_scan_candidates')
@@ -32,7 +32,7 @@ export async function PATCH(request: NextRequest) {
   const client = await supabase();
   const { data: { user } } = await client.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
-  const accessError = await gmailAccessError(client, user.id);
+  const accessError = await gmailAccessError(client, user);
   if (accessError) return accessError;
   const body = (await request.json().catch(() => ({}))) as { messageId?: string; reviewState?: string };
   const messageId = String(body.messageId ?? '').trim();

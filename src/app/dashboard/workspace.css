@@ -302,6 +302,7 @@ html[data-theme=dark] .rate-metric-value,html[data-theme=dark] .rate-metric-valu
 .plan-state-active{background:#e5f3e8;color:#176b35}
 .plan-state-past-due{background:#fae8e8;color:#982b2b}
 .plan-state-canceled{background:#eeeeec;color:#666}
+.plan-state-beta{background:#f1eaf9;color:#5a2d8f}
 .plan-facts{display:flex;flex-wrap:wrap;gap:8px 34px;margin:0}
 .plan-facts dt{font-size:11px;color:#626976;margin-bottom:2px}
 .plan-facts dd{margin:0;font-size:13px;color:#23272f}
@@ -315,6 +316,7 @@ html[data-theme=dark] .rate-metric-value,html[data-theme=dark] .rate-metric-valu
 .plan-notes li{display:flex;gap:8px}
 .plan-notes li::before{content:'\00b7';color:#a3aab7}
 .settings-sections .plan-feedback{font-size:12px;color:#23272f}
+.plan-beta-note{font-size:13px;color:#23272f}
 .plan-error{color:#a53535}
 .plan-section .sync-dialog .button-row{justify-content:center}
 html[data-theme=dark] .settings-sections .plan-headline{color:#f4f4f4}
@@ -322,9 +324,11 @@ html[data-theme=dark] .plan-facts dd,html[data-theme=dark] .plan-option{color:#f
 html[data-theme=dark] .plan-facts dt,html[data-theme=dark] .plan-notes,html[data-theme=dark] .plan-option-price,html[data-theme=dark] .plan-options legend{color:#9baabd}
 html[data-theme=dark] .plan-options{border-color:#303030}
 html[data-theme=dark] .plan-state-free,html[data-theme=dark] .plan-state-canceled{background:#2b3340;color:#c0c9d4}
+html[data-theme=dark] .plan-state-beta{background:#2a1f3d;color:#d9c2f5}
 html[data-theme=dark] .plan-state-trial{background:#1d2d48;color:#b8d2ff}
 html[data-theme=dark] .plan-state-active{background:#193729;color:#aae4bd}
 html[data-theme=dark] .plan-state-past-due{background:#3b2229;color:#ffb5bf}
 html[data-theme=dark] .settings-sections .plan-feedback{color:#f4f4f4}
 html[data-theme=dark] .settings-sections .plan-error{color:#ffb5bf}
+html[data-theme=dark] .settings-sections .plan-beta-note{color:#f4f4f4}
 html[data-theme=dark] .plan-option input{accent-color:#8ab4e8}

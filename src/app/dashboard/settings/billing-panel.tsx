@@ -63,7 +63,9 @@ export default function BillingPanel({ card }: { card: PlanCard }) {
   });
 
   const facts = planFacts(card);
-  const headline = card.state === 'Free' || card.state === 'Canceled' ? 'RekodJa Free' : 'RekodJa Pro';
+  const headline = card.state === 'Beta'
+    ? 'RekodJa BETA'
+    : card.state === 'Free' || card.state === 'Canceled' ? 'RekodJa Free' : 'RekodJa Pro';
   const { label: cancelLabel, body: cancelBody } = cancelPrompt(card);
 
   return <div className="plan-card">
@@ -72,9 +74,11 @@ export default function BillingPanel({ card }: { card: PlanCard }) {
       <p className="plan-headline">{headline}</p>
     </div>
 
-    {facts.length > 0
-      ? <dl className="plan-facts">{facts.map(([term, value]) => <div key={term}><dt>{term}</dt><dd>{value}</dd></div>)}</dl>
-      : <p className="muted">{card.usedTrial ? 'No active subscription. Your free trial has already been used.' : 'No active subscription.'}</p>}
+    {card.betaEnds
+      ? <p className="plan-beta-note">Akses Gmail scan percuma sehingga {card.betaEnds}.</p>
+      : facts.length > 0
+        ? <dl className="plan-facts">{facts.map(([term, value]) => <div key={term}><dt>{term}</dt><dd>{value}</dd></div>)}</dl>
+        : <p className="muted">{card.usedTrial ? 'No active subscription. Your free trial has already been used.' : 'No active subscription.'}</p>}
 
     {(card.canSubscribe || card.canChangePlan) && <fieldset className="plan-options" disabled={busy !== null}>
       <legend>{card.canChangePlan ? 'Change plan' : 'Choose a plan'}</legend>

@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { googlePickerConfiguration } from '@/lib/google-config';
 import { attentionItems, type AttentionCandidate, type DashboardApplication, type DashboardEvent } from '@/lib/dashboard';
 import ActionsClient from './actions-client';
-import { userHasPro } from '@/lib/billing/server';
+import { gmailAccessAllowed, gmailAccessKind } from '@/lib/billing/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,7 +11,7 @@ export default async function ActionsPage() {
   const client = await supabase();
   const { data: { user }, error: authError } = await client.auth.getUser();
   if (authError || !user) redirect('/sign-in');
-  const hasPro = await userHasPro(client, user.id);
+  const hasPro = gmailAccessAllowed(await gmailAccessKind(client, user));
   const [{ data: applications, error: applicationsError }, { data: events, error: eventsError }, { data: candidates, error: candidatesError }] = await Promise.all([
     client.from('applications').select('id, company, role, stage, date_applied, source, job_url'),
     client.from('application_events').select('id, application_id, event_status, event_type, from_stage, to_stage, source, occurred_at'),

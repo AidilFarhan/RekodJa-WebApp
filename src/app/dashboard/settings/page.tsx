@@ -28,7 +28,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   const name = profile?.display_name || 'Your account';
   const initials = name.split(/\s+/).slice(0, 2).map((part: string) => part[0]).join('').toUpperCase();
   const pickerConfig = googlePickerConfiguration();
-  const billing = await billingView(client, user.id);
+  const billing = await billingView(client, user);
   return <section className="settings-page">
     <h1>Settings</h1>
     <p className="page-subtitle">Manage your workspace connections and plan.</p>
