@@ -40,6 +40,16 @@ test('an unrecognised deployment is refused', () => {
   assert.equal(billingEnvironment({}), null);
 });
 
+test('a development server is never the live environment', () => {
+  // A live key in a local env file beside the production APP_URL would
+  // otherwise make `npm run dev` able to charge real customers.
+  assert.equal(billingEnvironment({ ...LIVE_ENV, NODE_ENV: 'development' }), null);
+  assert.equal(billingEnvironmentWithKey({ ...LIVE_ENV, NODE_ENV: 'development' }), null);
+  // The Test project still works from a development server, which is how the
+  // isolated launcher runs it.
+  assert.equal(billingEnvironment({ ...TEST_ENV, NODE_ENV: 'development' }), 'test');
+});
+
 test('only key prefixes that are a secret or a restricted key are recognised', () => {
   assert.equal(stripeKeyMode('sk_test_example'), 'test');
   assert.equal(stripeKeyMode('sk_live_example'), 'live');

@@ -64,6 +64,11 @@ export function accountFor(env) {
 export function billingEnvironment(env) {
   if (env.SUPABASE_URL === TEST_SUPABASE_URL && env.APP_URL === TEST_APP_URL) return 'test';
   if (env.APP_URL === LIVE_APP_URL && env.SUPABASE_URL && env.SUPABASE_URL !== TEST_SUPABASE_URL) {
+    // A development server is never live, however it is configured. A live key
+    // sitting in a local env file beside the production APP_URL would otherwise
+    // make `npm run dev` able to charge real customers. A deployment sets
+    // NODE_ENV=production; `npm run dev` does not.
+    if (env.NODE_ENV === 'development') return null;
     return 'live';
   }
   return null;
