@@ -1,7 +1,6 @@
 import 'server-only';
 import Stripe from 'stripe';
-import { REKODJA_ACCOUNT } from '../billing/plans';
-import { billingEnvironmentWithKey } from '../billing/test-environment.mjs';
+import { accountFor, billingEnvironmentWithKey } from '../billing/test-environment.mjs';
 
 let client: Stripe | undefined;
 
@@ -22,10 +21,12 @@ export function stripeServer(): Stripe {
 
 export async function verifiedStripe(): Promise<Stripe> {
   const stripe = stripeServer();
-  // A key prefix alone does not identify the intended account: any other
-  // Stripe account's key satisfies it. Stripe reuses the account id across
-  // test and live mode, so this single check holds in both.
+  // A key prefix does not identify an account: any other Stripe account's key
+  // satisfies it. Each environment therefore pins its own account id, because a
+  // Stripe Sandbox is an account of its own and does not share the live id.
+  const expected = accountFor(process.env);
+  if (!expected) throw new Error('Billing requires a recognised environment.');
   const account = await stripe.accounts.retrieveCurrent();
-  if (account.id !== REKODJA_ACCOUNT) throw new Error('Wrong Stripe account.');
+  if (account.id !== expected) throw new Error('Wrong Stripe account.');
   return stripe;
 }
