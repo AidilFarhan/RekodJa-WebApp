@@ -1,139 +1,113 @@
-## Local test environment
+# RekodJa Web App
 
-Gunakan launcher ini untuk menguji Stripe Sandbox dan Supabase RekodJa Test secara berasingan daripada production.
+RekodJa is a job application tracker for people who already keep their applications in a Google Sheet. Instead of moving your data into another service, RekodJa works on top of the sheet you own. The sheet stays the record; RekodJa adds the dashboard, reminders and follow-ups a spreadsheet can't give you.
 
-### Semak konfigurasi sahaja
+RekodJa comes in two parts that share the same sheet:
 
-Arahan ini hanya menyemak konfigurasi dan tidak menjalankan aplikasi:
+- **RekodJa: Job Tracker** (Chrome extension, free) saves a job posting into your sheet in one click.
+- **RekodJa Web App** (this repository) connects to that sheet and turns it into a workspace: see what needs attention, update stages, draft follow-ups, scan Gmail for replies and track your results.
 
-```powershell
-Set-Location "C:\Users\aidil\OneDrive\Desktop\JOB TRACKER\pro"
-npm run dev:test:check
+You can use the web app without the extension. Any sheet with the expected columns works.
+
+## What you can do
+
+| Page | What it's for |
+| --- | --- |
+| **Overview** | Starts with **Needs Attention**: applications that have waited too long without a reply, each with a follow-up shortcut. |
+| **Applications** | Every application in one table. Open one to see its confirmed history, change its stage or date applied, or delete it. |
+| **Actions** | The Action Center: follow-ups that are due, recruiter replies, and Gmail detections waiting for you to confirm or dismiss. |
+| **Follow-up** | A ready-to-edit follow-up email for any application, written from its company, role and date. |
+| **Gmail Scan** *(Pro)* | Reads your recent Gmail (last 45 days, read-only) and suggests new applications and status changes such as interviews or rejections. Nothing changes until you confirm it. |
+| **Analytics** | Interview and offer rates, application volume, your pipeline by stage, and which sources perform best. Based only on history you've confirmed. |
+| **Settings** | Connect or change your tracker, sync it, manage your plan, or delete your account. |
+
+## How it works with your Google Sheet
+
+```
+Chrome extension ──adds rows──▶  Your Google Sheet  ◀──reads and writes──▶  RekodJa Web App
+                                  (the record)                              (dashboard)
 ```
 
-Launcher membaca **hanya** `.env.stripe-test.local`, tanpa fallback daripada
-`.env.local` atau environment aplikasi yang diwarisi. Ia menyalin kod ke folder
-sementara tanpa fail `.env*`, kemudian menjalankan Next.js pada port 3002.
-Hanya environment sistem yang dibenarkan diwarisi. Jangan guna `npm run dev`
-untuk ujian Stripe kerana arahan biasa itu boleh memuat `.env.local`.
+1. **Connect once.** In Settings you pick your spreadsheet with Google Picker, then choose the tab that holds your applications.
+2. **Sync brings the sheet in.** Each row becomes an application in RekodJa. Syncing again updates what changed instead of creating duplicates.
+3. **Changes in RekodJa go back to the sheet.** Changing a stage updates the row's Status cell. Changing the date applied updates the Date Applied cell. Deleting an application deletes its row.
+4. **Rows you delete in the sheet** are detected on the next sync, and RekodJa asks before removing them from the app.
 
-`--check` menyemak konfigurasi sahaja; ia **tidak** membuktikan key sah di server,
-Google Picker berfungsi, webhook diterima atau pembayaran berjaya. Publishable
-key yang opaque tidak boleh dipadankan dengan project secara offline. Admin
-client memerlukan legacy `service_role` key projek Test dan URL localhost tepat.
+When RekodJa can't tell exactly which row an application belongs to (for example, two identical rows), it refuses to delete rather than guess, and tells you which rows to check.
 
-Selepas arahan untuk menjalankan aplikasi diberi:
+**Expected columns** (header in row 1): `Date Applied`, `Company`, `Role`, `Status`, `Source`, plus an optional `Job Link` (or `Job URL`). The extension creates this layout for you. Extra columns such as `Days Since Applied`, `Notes` or `Email Sender` are left alone.
 
-```powershell
-Set-Location "C:\Users\aidil\OneDrive\Desktop\JOB TRACKER\pro"
-npm run dev:test
-```
+## Privacy and permissions
 
-Output launcher hanya label tetap `PASS` / `FAIL`; error mentah aplikasi tidak
-dicetak kerana ia mungkin mengandungi secrets. `PORT_3002_AVAILABLE: FAIL`
-bermaksud port sedang digunakan. Jangan hentikan proses yang belum dikenal pasti.
-Launcher menggunakan snapshot kod: hentikan terminal launcher dengan Ctrl+C
-dan jalankan semula selepas mengubah kod atau konfigurasi.
+- **Sign-in** uses Google for identity only: your name, email and profile picture.
+- **Google Sheets** access uses the `drive.file` scope, so RekodJa can only open the file you picked in Google Picker. The access token is short-lived and is never stored.
+- **Gmail** (Pro, optional) uses `gmail.readonly`, requested only when you start a scan. RekodJa never sends, deletes or changes email.
+- **AI** is used only when a scanned email can't be matched by RekodJa's own rules. The subject and a short excerpt may then be sent to Google Gemini to read the company name. Matching an email to an application always happens in RekodJa's code.
+- **Stored data** (your profile, applications, history and scan suggestions) lives in Supabase, locked so each account can only read its own rows. You can delete your account and all of it from Settings.
 
-**Status billing:** Checkout masih dikunci (HTTP 503). Ini belum integrasi Stripe
-lengkap; webhook, portal, UI Pro dan ujian lifecycle Sandbox masih diperlukan.
-Jangan deploy atau push branch ini ke `main`.
+The full policy is at `/privacy` in the app.
 
-# Job Tracker Pro — production milestones 1–2
+## Plans
 
-Independent Next.js App Router / TypeScript app. No prototype code or mock data is imported. It includes Google identity sign-in, private profiles, owner-scoped application/event data, and a narrowly scoped one-way Google Sheet import.
+- **Free:** connect your sheet, sync, and use Overview, Applications, Actions, follow-up drafts and Analytics.
+- **Pro:** everything in Free plus Gmail Scan. RM6 a month, RM18 for 3 months, or RM66 a year, with a 14-day trial on your first subscription. Payments go through Stripe.
 
-## Local setup (PowerShell)
+---
+
+## For developers
+
+Next.js (App Router) and TypeScript, with Supabase (Postgres with row-level security, server-side auth), Google Identity Services, Picker, Sheets and Gmail APIs, Stripe Billing and Google Gemini. Everything talks to Supabase from the server; there is no browser Supabase client.
 
 Requires Node.js 20.9 or newer (Node 22 LTS recommended).
+
+### Run it locally
+
+Use the isolated test launcher. It runs against the **Test** Supabase project and the Stripe Sandbox:
 
 ```powershell
 Set-Location "C:\Users\aidil\OneDrive\Desktop\JOB TRACKER\pro"
 npm ci
-Copy-Item .env.example .env.local
+npm run dev:test:check   # checks the configuration only
+npm run dev:test         # runs the app on http://localhost:3002
 ```
 
-Edit `.env.local` locally:
+- The launcher reads **only** `.env.stripe-test.local`. It copies the code to a temporary folder without any `.env*` files and runs Next.js on port 3002.
+- It prints fixed `PASS` / `FAIL` labels instead of raw output, which could contain secrets. `PORT_3002_AVAILABLE: FAIL` means the port is already in use.
+- It runs a snapshot of the code: restart it after changing code or configuration.
+- **Don't use `npm run dev` for billing or Gmail work.** It can load `.env.local`, which holds production credentials.
 
-```dotenv
-SUPABASE_URL=https://YOUR_PROJECT.supabase.co
-SUPABASE_ANON_KEY=YOUR_PUBLIC_ANON_OR_PUBLISHABLE_KEY
-APP_URL=http://localhost:3002
-GOOGLE_OAUTH_CLIENT_ID=YOUR_WEB_OAUTH_CLIENT_ID.apps.googleusercontent.com
-GOOGLE_PICKER_API_KEY=YOUR_BROWSER_RESTRICTED_API_KEY
-GOOGLE_CLOUD_PROJECT_NUMBER=YOUR_NUMERIC_PROJECT_NUMBER
-```
-
-Use the project's publishable key or legacy anon key, NEVER a service-role or secret key. All three values are read only on the server; there is no browser Supabase client. `.env*` is ignored except `.env.example`. Do not upload `.env.local` using GitHub's manual file uploader (which does not enforce your local ignore file). Google client secrets belong in Supabase provider settings, not this app.
-
-## Milestone 1: Supabase and Google sign-in configuration
-
-1. Create a Supabase project. In its SQL Editor, run `supabase/migrations/202609170001_profiles.sql` once. This creates the table, RLS policies, grants and signup trigger, and backfills any existing users.
-2. In Google Cloud, configure an OAuth consent screen and a Web application OAuth client. Configure only `openid`, `email`, `profile` identity scopes. Add your Google account as a test user when the consent app is in testing. Do not enable Gmail or Sheets permissions.
-3. Set the Google client's authorized redirect URI to `https://YOUR_PROJECT.supabase.co/auth/v1/callback` (copy the exact callback from Supabase).
-4. In Supabase Authentication → Sign In / Providers → Google, enable Google and enter the client ID and client secret. Do not enable skip nonce checks.
-5. In Supabase Authentication → URL Configuration, set Site URL to `http://localhost:3002` and add the exact allowed redirect `http://localhost:3002/auth/callback`.
-6. Put the project's URL and public key in `.env.local`, then run:
+### Checks
 
 ```powershell
-npm run dev
-```
-
-## Milestone 2: database and Google Picker configuration
-
-1. Run `supabase/migrations/202609180001_applications_and_sheets.sql` once in the hosted Supabase SQL Editor.
-2. Run `supabase/tests/applications_rls.sql` in the hosted SQL Editor. A successful result ends with `PASS`; all test fixtures are rolled back.
-3. In the same Google Cloud project used for sign-in, enable **Google Picker API** and **Google Sheets API**.
-4. In Google Auth Platform → Data Access, add only `https://www.googleapis.com/auth/drive.file`. Keep the identity scopes (`openid`, `email`, `profile`). Do not add `spreadsheets`, broad Drive, or Gmail scopes.
-5. On the existing Web OAuth client, add `http://localhost:3002` under Authorized JavaScript origins. Add the production HTTPS origin later. Keep the existing Supabase redirect URI unchanged.
-6. Create a Google API key for Picker. Restrict it to Websites and add `http://localhost:3002/*`, the production origin when available, and `https://docs.google.com/*`. Restrict the key to Google Picker API.
-7. Copy the existing Web OAuth client ID, browser-restricted Picker API key, and numeric Google Cloud project number to `.env.local` using the names above. These identifiers are expected to reach browser code; no client secret is exposed. The existing OAuth client secret remains only in Supabase.
-
-The connection screen is `/tracker-setup`. It obtains a short-lived token in the browser only after a user click, requesting exactly `drive.file`. Picker grants access to the selected spreadsheet. The access token is relayed to the app's authenticated route for the immediate read and is never stored in Postgres, logs, cookies, or local storage.
-
-The manual import reads columns `Date Applied`, `Company`, `Role`, `Job URL`, `Status`, `Source`, and ignores the derived `Days Since Applied`. It is one-way Sheet → database. A stable SHA-256 identity is derived from spreadsheet, tab, date, company, role and normalized job URL. The database serializes and upserts by that identity, so retries cannot duplicate applications or history events. A changed Sheet stage updates the same application and appends one `user_confirmed` event; unchanged retries append no event.
-
-Open http://localhost:3002. For a later deployment, use a separate Vercel project rooted at `pro` (or `./` if only this folder is uploaded). Set the same environment variables there with `APP_URL` equal to the production HTTPS origin, and allow that exact `/auth/callback` URL in Supabase. This does not deploy or replace the prototype.
-
-## Verification
-
-```powershell
-npm test
+npm test            # unit and database tests (Postgres tests apply the real migrations)
 npm run typecheck
 npm run build
-npm start
 ```
 
-`npm test` runs 20 tests. The PostgreSQL tests recreate Supabase's auth role/schema interface and apply the actual migrations. They verify RLS, owner access, cross-user denial, relationship integrity, idempotent retry, and stage-history behavior. Parser tests verify the Free extension column contract and stable identity. These tests do not by themselves prove a hosted project's settings or Google integration; run the hosted SQL test and manual Picker import as described above.
+The database tests recreate Supabase's auth interface and check row-level security, owner-only access, idempotent imports, stage history, billing and beta rules. They don't prove a hosted project's settings or the live Google integration. For that, run the SQL files in `supabase/tests/` in the hosted SQL Editor and try a real Picker import.
 
-Manual checks after hosted configuration:
+<details>
+<summary>First-time setup of Supabase and Google Cloud</summary>
 
-- Sign in with Google; consent should show identity only. Cancellation returns a generic retry message.
-- `/account` shows your real email and trigger-created name. Edit the name and refresh: it persists in Postgres.
-- Sign out; visiting `/account` returns to sign-in.
-- Sign in with a second Google account in a separate browser session; it gets its own profile.
-- Run `supabase/tests/profiles_rls.sql` in Supabase SQL Editor for a hosted isolation test. It impersonates an authenticated user and rolls back fixtures. The SQL Editor's default privileged role bypasses RLS and is NOT a valid isolation test by itself.
+1. **Environment.** Copy `.env.example` to `.env.local` and fill in `SUPABASE_URL`, `SUPABASE_ANON_KEY` (the publishable or legacy anon key, never a service-role key), `APP_URL`, `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_PICKER_API_KEY` and `GOOGLE_CLOUD_PROJECT_NUMBER`. `.env*` files are git-ignored except `.env.example`.
+2. **Database.** Run the files in `supabase/migrations/` in order in the Supabase SQL Editor. Then run `supabase/tests/*.sql`; each ends with `PASS` and rolls its fixtures back.
+3. **Google sign-in.** Create an OAuth consent screen and a Web OAuth client with only the `openid`, `email` and `profile` scopes. Set its redirect URI to the Supabase callback (`https://YOUR_PROJECT.supabase.co/auth/v1/callback`). Enable Google in Supabase Authentication with that client ID and secret. The client secret belongs in Supabase, not in this app.
+4. **Supabase URLs.** Set the Site URL to `http://localhost:3002` and allow `http://localhost:3002/auth/callback`.
+5. **Sheets and Picker.** Enable the Google Picker API and Google Sheets API. Add the `drive.file` scope under Data Access. Add `http://localhost:3002` to the OAuth client's JavaScript origins. Create a Picker API key restricted to your origins and `https://docs.google.com/*`.
+6. **Gmail scan.** Enable the Gmail API and add `gmail.readonly` under Data Access.
+7. **Deploying.** Use a Vercel project rooted at `pro`. Set the same variables with `APP_URL` set to the HTTPS origin, and allow that `/auth/callback` in Supabase.
 
-## Routes and files
+</details>
 
-- `src/app/page.tsx`: `/` → `/account`
-- `src/app/sign-in/page.tsx`: `/sign-in`
-- `src/app/auth/callback/route.ts`: PKCE callback
-- `src/app/account/page.tsx`: authenticated profile
-- `src/app/tracker-setup`: Picker connection and manual import flow
-- `src/app/api/google/sheets/tabs`: validates selected file access and lists tabs
-- `src/app/api/sheet-connections`: owner-scoped connection save
-- `src/app/api/sheet-connections/[id]/import`: one-way import
-- `src/lib/sheets/import.ts`: strict parser and stable import identity
-- `src/app/actions.ts`: sign-in, sign-out, own-profile update
-- `src/lib/config.ts`, `src/lib/supabase.ts`, `src/proxy.ts`: server environment, cookie client and session refresh
-- `src/app/layout.tsx`, `globals.css`, `error.tsx`: minimal accessible navy/near-white UI and safe error page
-- `supabase/migrations/202609170001_profiles.sql`: production schema and RLS
-- `supabase/migrations/202609180001_applications_and_sheets.sql`: applications, events, sheet connections, RLS and atomic import function
-- `supabase/tests/applications_rls.sql`: hosted owner/cross-user/idempotency verification
-- `tests/profiles.test.mjs`: database integrity tests
-- `package.json`, `package-lock.json`, `tsconfig.json`, `next-env.d.ts`, `.gitignore`, `.env.example`: independent project setup
+### Where things are
 
-No dashboard, Gmail integration, two-way sync, payments or background processing are included.
+- `src/app/dashboard/`: the workspace pages (overview, applications, actions, Gmail scan, analytics, settings)
+- `src/app/api/`: server routes for applications, sheet connections and import, Gmail scan, Google tab listing and billing
+- `src/lib/sheets/`: the sheet parser, the stable row identity, and write-back (stage, date, row deletion)
+- `src/lib/gmail/`: scanning and email classification
+- `src/lib/billing/`, `src/lib/stripe/`: plans, access rules, Checkout and the webhook
+- `supabase/migrations/`, `supabase/tests/`: schema, row-level security and hosted SQL tests
+- `scripts/dev-test.mjs`: the isolated test launcher
+- `tests/`: automated tests
 
-References: [Supabase SSR](https://supabase.com/docs/guides/auth/server-side/creating-a-client), [Google provider configuration](https://supabase.com/docs/guides/auth/social-login/auth-google), [Google Picker for web](https://developers.google.com/workspace/drive/picker/guides/web-picker), [Drive `drive.file` scope](https://developers.google.com/workspace/drive/api/guides/api-specific-auth).
+Project-wide documents (product requirements, architecture, progress, billing go-live plan) are in the `DOCS/` folder of the parent project.
