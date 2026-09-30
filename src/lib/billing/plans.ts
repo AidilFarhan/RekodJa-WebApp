@@ -5,6 +5,7 @@ export const PLANS = {
 } as const;
 export type PlanKey = keyof typeof PLANS;
 export const TRIAL_DAYS = 14;
+export const SANDBOX_ACCOUNT = 'acct_1UJBHNIz7rRwXn6f';
 export const SANDBOX_PORTAL = 'bpc_1UJHEgIz7rRwXn6fkqSWAKnT';
 export const SANDBOX_PRODUCT = 'prod_VJp91FLk0SMjRJ';
 // The cards-only payment method configuration is resolved BY NAME, not id, at

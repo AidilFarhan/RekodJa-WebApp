@@ -1,6 +1,5 @@
 import type Stripe from 'stripe';
-import { isPlanKey, PLANS } from './plans.ts';
-import { liveMode, stripeObject } from './stripe-objects.mjs';
+import { isPlanKey, PLANS, SANDBOX_PRODUCT } from './plans.ts';
 
 export function resourceId(value: string | { id: string } | null | undefined): string | null {
   return typeof value === 'string' ? value : value?.id ?? null;
@@ -17,19 +16,14 @@ export function failureWindowStart(invoiceCreated: number, nowSeconds: number): 
 export function validatePrice(price: Stripe.Price, requireActive = false) {
   if (!isPlanKey(price.lookup_key)) throw new Error('Unsupported billing plan.');
   const plan = PLANS[price.lookup_key];
-  // The product is a mode-specific object. When it is configured the price must
-  // belong to it; when it is not, that check is skipped rather than guessed.
-  const expectedProduct = stripeObject(process.env, 'STRIPE_PRODUCT');
-  if (price.livemode !== liveMode(process.env) || (requireActive && !price.active) || price.currency !== 'myr' ||
+  if (price.livemode || (requireActive && !price.active) || price.currency !== 'myr' ||
       price.unit_amount !== plan.amount || price.recurring?.interval !== plan.interval ||
       price.recurring.interval_count !== plan.count || price.recurring.usage_type !== 'licensed' ||
-      (expectedProduct !== null && resourceId(price.product) !== expectedProduct)) {
-    throw new Error('Unexpected price configuration.');
-  }
+      resourceId(price.product) !== SANDBOX_PRODUCT) throw new Error('Unexpected Sandbox price configuration.');
   return price.lookup_key;
 }
 export function subscriptionSnapshot(sub: Stripe.Subscription, userId: string, firstFailure: string | null) {
-  if (sub.livemode !== liveMode(process.env) || sub.items.data.length !== 1 || sub.items.has_more || sub.items.data[0].quantity !== 1) {
+  if (sub.livemode || sub.items.data.length !== 1 || sub.items.has_more || sub.items.data[0].quantity !== 1) {
     throw new Error('Unsupported subscription configuration.');
   }
   const item = sub.items.data[0];

@@ -166,7 +166,7 @@ export async function scanGmail(token: string, applications: ApplicationRecord[]
       let details = suggestKnownCompany(extractEmailDetails(subject, text, from), subject + '\n' + text + '\n' + from, applications);
       let matches = matchApplications(applications, details.company, link);
       const matchedDeterministically = matches.length === 1;
-      // One Gemini attempt per email that needs it (GMAIL-DESIGN-ACTION-CENTER.md §7):
+      // One Gemini attempt per email that needs it (DESIGN-ACTION-CENTER.md §7):
       // company extraction when matching failed, and/or a stage when regex
       // found none. The model never picks an application (D3) — it can only
       // feed a company name into matching and an enum-validated stage into the

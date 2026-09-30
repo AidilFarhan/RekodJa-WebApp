@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
  * Bucket rules for Gmail candidates, and the boundary between scan-derived
  * items and time-derived follow-ups.
  *
- * Rule under test (GMAIL-DESIGN-ACTION-CENTER.md OD1):
+ * Rule under test (DESIGN-ACTION-CENTER.md OD1):
  *   no app match AND no detected company+role -> unmatched (decided first)
  *   suggested_status Offer | Rejected | Interview -> recruiter
  *   anything else pending -> review
