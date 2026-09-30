@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { stages, type Stage } from '@/lib/dashboard';
-import { writeDateAppliedToSheet, writeStageToSheet } from '@/lib/sheets/sync';
+import { deleteSheetRow, locateApplicationRow, writeDateAppliedToSheet, writeStageToSheet } from '@/lib/sheets/sync';
 import { rowIdentityKey } from '@/lib/sheets/import';
 
 export const runtime = 'nodejs';
@@ -74,9 +74,68 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   const { data: { user } } = await client.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
   const { id } = await params;
+  const token = request.headers.get('authorization')?.replace(/^Bearer\s+/i, '') || '';
+  const { data: application, error: applicationError } = await client
+    .from('applications')
+    .select('id, sheet_connection_id, import_key, company, role, date_applied, job_url, updated_at')
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .maybeSingle();
+  if (applicationError) return NextResponse.json({ error: 'Could not load the application.' }, { status: 500 });
+  if (!application) return NextResponse.json({ error: 'Application not found.' }, { status: 404 });
+
+  // An application imported from the connected sheet is deleted there first.
+  // The app record is only removed once Google confirms the row is gone, so a
+  // failed or unresolvable sheet delete leaves both sides unchanged.
+  let sheet: { deleted: true; row: number } | null = null;
+  if (application.sheet_connection_id) {
+    const { data: connection, error: connectionError } = await client.from('sheet_connections').select('spreadsheet_id, sheet_name').eq('id', application.sheet_connection_id).maybeSingle();
+    if (connectionError || !connection) return NextResponse.json({ error: 'The connected tracker could not be found, so nothing was deleted.' }, { status: 500 });
+    if (!token) return NextResponse.json({ error: 'Google access is needed to delete this row from your sheet. Nothing was deleted.' }, { status: 400 });
+    const diagnostics = { applicationId: id, spreadsheetId: connection.spreadsheet_id, sheetName: connection.sheet_name };
+    const location = await locateApplicationRow({
+      token,
+      spreadsheetId: connection.spreadsheet_id,
+      sheetName: connection.sheet_name,
+      importKey: application.import_key,
+      company: application.company,
+      role: application.role,
+      dateApplied: application.date_applied,
+      jobUrl: application.job_url,
+    });
+    if (!location.ok) {
+      console.error('[delete-application] sheet row not resolved', { ...diagnostics, reason: location.reason, googleStatus: location.googleStatus, googleDetail: location.googleDetail });
+      return NextResponse.json({ error: location.message }, { status: location.reason === 'google_error' ? 502 : 409 });
+    }
+    // Claim the record before the destructive call: of two concurrent deletes
+    // that loaded the same version, only one gets past this update, so the
+    // other cannot delete whatever row shifted into the resolved position.
+    const { data: claimed, error: claimError } = await client
+      .from('applications')
+      .update({ updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .eq('updated_at', application.updated_at)
+      .select('id');
+    if (claimError || !claimed || claimed.length === 0) return NextResponse.json({ error: 'This application changed while it was being deleted. Refresh and try again.' }, { status: 409 });
+    const removal = await deleteSheetRow({ token, spreadsheetId: connection.spreadsheet_id, sheetId: location.sheetId, rowIndex: location.rowIndex });
+    if (!removal.ok) {
+      console.error('[delete-application] sheet row delete failed', { ...diagnostics, sheetId: location.sheetId, rowIndex: location.rowIndex, googleStatus: removal.googleStatus, googleDetail: removal.googleDetail });
+      return NextResponse.json({ error: removal.message }, { status: 502 });
+    }
+    sheet = { deleted: true, row: location.rowIndex + 1 };
+  }
+
   await client.from('application_events').delete().eq('application_id', id).eq('user_id', user.id);
   const { data: deleted, error } = await client.from('applications').delete().eq('id', id).eq('user_id', user.id).select('id');
-  if (error) return NextResponse.json({ error: 'Could not delete the application.' }, { status: 500 });
-  if (!deleted || deleted.length === 0) return NextResponse.json({ error: 'Application not found.' }, { status: 404 });
-  return NextResponse.json({ ok: true });
+  if (error || !deleted || deleted.length === 0) {
+    if (sheet) {
+      console.error('[delete-application] sheet row deleted but app record remains', { applicationId: id, row: sheet.row });
+      return NextResponse.json({ error: 'The row was deleted from your Google Sheet, but the application could not be removed here. Run Sync tracker in Settings to finish.' }, { status: 500 });
+    }
+    return error
+      ? NextResponse.json({ error: 'Could not delete the application.' }, { status: 500 })
+      : NextResponse.json({ error: 'Application not found.' }, { status: 404 });
+  }
+  return NextResponse.json({ ok: true, sheet });
 }
