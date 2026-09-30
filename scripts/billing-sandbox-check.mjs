@@ -2,7 +2,8 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Stripe from 'stripe';
 import { loadTestEnv } from './dev-test.mjs';
-import { SANDBOX_ACCOUNT, SANDBOX_CARDS_CONFIG_NAME, SANDBOX_PORTAL } from '../src/lib/billing/plans.ts';
+import { SANDBOX_CARDS_CONFIG_NAME, SANDBOX_PORTAL } from '../src/lib/billing/plans.ts';
+import { SANDBOX_ACCOUNT } from '../src/lib/billing/test-environment.mjs';
 
 // Read-only unless this exact, explicit setup switch is supplied. Never prints
 // provider exceptions or credentials. Uses neither inherited keys nor .env.local.

@@ -35,13 +35,24 @@ bermaksud port sedang digunakan. Jangan hentikan proses yang belum dikenal pasti
 Launcher menggunakan snapshot kod: hentikan terminal launcher dengan Ctrl+C
 dan jalankan semula selepas mengubah kod atau konfigurasi.
 
-**Status billing:** Checkout masih dikunci (HTTP 503). Ini belum integrasi Stripe
-lengkap; webhook, portal, UI Pro dan ujian lifecycle Sandbox masih diperlukan.
-Jangan deploy atau push branch ini ke `main`.
+**Status billing:** Kod billing sudah lengkap dan sudah digunakan ke `main`.
+Checkout, portal, kad Plan, webhook dan kesembilan ujian lifecycle Sandbox semuanya
+siap dan terbukti. Tetapi ia masih **dikunci kepada persekitaran Test**: production
+menjawab setiap tindakan billing dengan `503`. Itu memang sengaja, bukan kerja yang
+tertinggal. Pelan untuk menghidupkannya ada dalam `DOCS/BILLING-GO-LIVE.md`.
 
-# Job Tracker Pro — production milestones 1–2
+**Status beta Gmail scan:** senarai tester dapat Gmail scan percuma sehingga
+30 September 2026. Dikawal oleh `BETA_TESTER_EMAILS`, `BETA_ENDS_AT` dan
+`GMAIL_GATE_ENFORCED`. **Undur segera:** tukar `GMAIL_GATE_ENFORCED` ke `0` dan
+deploy semula — tiada kod perlu diubah.
 
-Independent Next.js App Router / TypeScript app. No prototype code or mock data is imported. It includes Google identity sign-in, private profiles, owner-scoped application/event data, and a narrowly scoped one-way Google Sheet import.
+**Status:** `main` kini mengandungi kedua-dua kerja Stripe dan beta. Dokumen di
+`DOCS/` (`PROGRESS_REPORT.md`, `ARCHITECTURE.md`, `PRD.md`, `BILLING-GO-LIVE.md`)
+ialah gambaran terkini; bahagian di bawah menerangkan persediaan asal projek.
+
+# Job Tracker Pro — the RekodJa web app
+
+Independent Next.js App Router / TypeScript app. No prototype code or mock data is imported. It includes Google identity sign-in, private profiles, owner-scoped application/event data, a narrowly scoped one-way Google Sheet import, the dashboard, Gmail scan, and Stripe Billing (Sandbox only).
 
 ## Local setup (PowerShell)
 
@@ -104,7 +115,7 @@ npm run build
 npm start
 ```
 
-`npm test` runs 20 tests. The PostgreSQL tests recreate Supabase's auth role/schema interface and apply the actual migrations. They verify RLS, owner access, cross-user denial, relationship integrity, idempotent retry, and stage-history behavior. Parser tests verify the Free extension column contract and stable identity. These tests do not by themselves prove a hosted project's settings or Google integration; run the hosted SQL test and manual Picker import as described above.
+`npm test` runs 188 tests. The PostgreSQL tests recreate Supabase's auth role/schema interface and apply the actual migrations. They verify RLS, owner access, cross-user denial, relationship integrity, idempotent retry, stage-history behaviour, the billing webhook window, the plan card, and the beta access rules. Parser tests verify the Free extension column contract and stable identity. These tests do not by themselves prove a hosted project's settings or Google integration; run the hosted SQL test and manual Picker import as described above.
 
 Manual checks after hosted configuration:
 
@@ -128,6 +139,12 @@ Manual checks after hosted configuration:
 - `src/app/actions.ts`: sign-in, sign-out, own-profile update
 - `src/lib/config.ts`, `src/lib/supabase.ts`, `src/proxy.ts`: server environment, cookie client and session refresh
 - `src/app/layout.tsx`, `globals.css`, `error.tsx`: minimal accessible navy/near-white UI and safe error page
+- `src/app/dashboard/*`: overview, applications, actions, analytics, Gmail scan, settings
+- `src/lib/billing/`: plan catalogue, subscription access, the Gmail gate, beta rules, Checkout, webhook, Plan-card model
+- `src/lib/stripe/server.ts`: requires an `sk_test_` key and pins the Sandbox account
+- `src/app/api/billing/*`: Checkout, portal, subscription changes, webhook — all inert outside the Test environment
+- `scripts/dev-test.mjs`: the isolated Test/Sandbox launcher
+- `scripts/billing-sandbox-check.mjs`: Stripe account and configuration check
 - `supabase/migrations/202609170001_profiles.sql`: production schema and RLS
 - `supabase/migrations/202609180001_applications_and_sheets.sql`: applications, events, sheet connections, RLS and atomic import function
 - `supabase/tests/applications_rls.sql`: hosted owner/cross-user/idempotency verification

@@ -111,7 +111,7 @@ export function validateTestEnv(values, report = () => {}) {
   check(
     'STRIPE_TEST_KEY_OR_EMPTY',
     !values.STRIPE_SECRET_KEY ||
-      values.STRIPE_SECRET_KEY.startsWith('sk_test_'),
+      /^(?:sk|rk)_test_/.test(values.STRIPE_SECRET_KEY),
     report,
   );
 

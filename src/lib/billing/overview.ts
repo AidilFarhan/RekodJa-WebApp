@@ -4,7 +4,7 @@ import { isBetaTester } from './beta';
 import { betaConfiguration } from './beta-server';
 import { getBillingCustomer } from './checkout';
 import type { BillingView } from './presentation';
-import { billingTestEnabled, readSubscription } from './server';
+import { billingEnabled, readSubscription } from './server';
 
 /** The deadline is defined in Malaysia time, so format it there. Otherwise a
  * server in another timezone could show the card ending a day early or late.
@@ -30,7 +30,7 @@ export async function billingView(
   // Outside the test rollout the card stays hidden for everyone except a beta
   // tester or a real subscriber, so an ordinary production user keeps seeing
   // the previous "not available yet" copy. That is a deliberate no-change.
-  if (!billingTestEnabled() && !betaEligible && !subscription) return null;
+  if (!billingEnabled() && !betaEligible && !subscription) return null;
 
   let hasBillingAccount = false;
   try {
