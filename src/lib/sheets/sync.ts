@@ -116,6 +116,117 @@ export async function syncDateAppliedToSheet(options: {
   return { synced: true, row: matchedRow };
 }
 
+export type SheetRowIdentity = {
+  spreadsheetId: string;
+  sheetName: string;
+  importKey: string | null;
+  company: string;
+  role: string;
+  dateApplied: string | null;
+  jobUrl: string;
+};
+
+export type RowResolution =
+  | { status: 'found'; rowIndex: number }
+  | { status: 'not_found' }
+  | { status: 'ambiguous'; rowNumbers: number[] };
+
+/*
+  Resolves an application to exactly one data row before a destructive change.
+  The stage/date writers above take the first plausible row; deletion must not.
+  Signals are tried strongest first (import key, then job URL, then current
+  company + role + date) and the first signal that matches anything must match
+  exactly one row, otherwise nothing is deleted.
+
+  `values` is the A:Z read, so values[0] is sheet row 1 (the header). The
+  returned rowIndex is the zero-based index into `values`, which is also the
+  zero-based Sheets API row index; it is never 0.
+*/
+export function resolveApplicationRow(values: unknown[][], identity: SheetRowIdentity): RowResolution {
+  const { spreadsheetId, sheetName, importKey, company, role, dateApplied, jobUrl } = identity;
+  if (values.length < 2) return { status: 'not_found' };
+  const indexes = sheetColumns(values[0]);
+  if (indexes.company < 0 || indexes.role < 0) return { status: 'not_found' };
+  const wantedUrl = normalizeUrl(jobUrl);
+  const byKey: number[] = [];
+  const byUrl: number[] = [];
+  const byDetails: number[] = [];
+  for (let offset = 1; offset < values.length; offset += 1) {
+    const raw = values[offset] ?? [];
+    if (!raw.some((cell) => normalize(cell))) continue;
+    const rowCompany = normalize(raw[indexes.company]);
+    const rowRole = normalize(raw[indexes.role]);
+    const rowDate = indexes.dateApplied >= 0 ? dateValue(normalize(raw[indexes.dateApplied])) : null;
+    const rowJobUrl = indexes.jobUrl >= 0 ? normalize(raw[indexes.jobUrl]) : '';
+    if (importKey && rowIdentityKey({ spreadsheetId, sheetName, company: rowCompany, role: rowRole, dateApplied: rowDate, jobUrl: rowJobUrl }) === importKey) byKey.push(offset);
+    if (wantedUrl && normalizeUrl(rowJobUrl) === wantedUrl) byUrl.push(offset);
+    if (rowCompany === normalize(company) && rowRole === normalize(role) && rowDate === dateApplied) byDetails.push(offset);
+  }
+  for (const matches of [byKey, byUrl, byDetails]) {
+    if (matches.length === 1) return { status: 'found', rowIndex: matches[0] };
+    if (matches.length > 1) return { status: 'ambiguous', rowNumbers: matches.map((offset) => offset + 1) };
+  }
+  return { status: 'not_found' };
+}
+
+export type SheetFailure = { ok: false; reason: 'google_error' | 'tab_missing' | 'not_found' | 'ambiguous'; message: string; googleStatus?: number; googleDetail?: string };
+export type SheetRowLocation = { ok: true; sheetId: number; rowIndex: number } | SheetFailure;
+
+async function googleErrorDetail(response: Response) {
+  try { return (await response.text()).slice(0, 500); } catch { return ''; }
+}
+
+/*
+  Finds the numeric tab id (deleteDimension needs it; the spreadsheet id is
+  not enough) and the application's current row. Reads the sheet fresh on
+  every call, so rows that shifted after an earlier deletion are found at
+  their new position. Never throws.
+*/
+export async function locateApplicationRow(options: SheetRowIdentity & { token: string }): Promise<SheetRowLocation> {
+  const { token, ...identity } = options;
+  const { spreadsheetId, sheetName } = identity;
+  const base = `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}`;
+  const headers = { Authorization: `Bearer ${token}` };
+  try {
+    const metaResponse = await fetch(`${base}?fields=${encodeURIComponent('sheets.properties(sheetId,title)')}`, { headers, cache: 'no-store' });
+    if (!metaResponse.ok) return { ok: false, reason: 'google_error', message: 'Google could not open the connected sheet, so nothing was deleted.', googleStatus: metaResponse.status, googleDetail: await googleErrorDetail(metaResponse) };
+    const meta = (await metaResponse.json()) as { sheets?: { properties?: { sheetId?: number; title?: string } }[] };
+    const sheetId = meta.sheets?.find((sheet) => sheet.properties?.title === sheetName)?.properties?.sheetId;
+    if (typeof sheetId !== 'number') return { ok: false, reason: 'tab_missing', message: `The "${sheetName}" tab was not found in the connected sheet, so nothing was deleted.` };
+    const tab = `'${sheetName.replaceAll("'", "''")}'`;
+    const readResponse = await fetch(`${base}/values/${encodeURIComponent(`${tab}!A:Z`)}?majorDimension=ROWS&valueRenderOption=FORMATTED_VALUE`, { headers, cache: 'no-store' });
+    if (!readResponse.ok) return { ok: false, reason: 'google_error', message: 'Google could not read the connected sheet, so nothing was deleted.', googleStatus: readResponse.status, googleDetail: await googleErrorDetail(readResponse) };
+    const sheet = (await readResponse.json()) as { values?: unknown[][] };
+    const resolution = resolveApplicationRow(sheet.values ?? [], identity);
+    if (resolution.status === 'ambiguous') return { ok: false, reason: 'ambiguous', message: `Rows ${resolution.rowNumbers.join(', ')} in your Google Sheet all look like this application, so nothing was deleted. Remove the extra row in the sheet, then try again.` };
+    if (resolution.status === 'not_found') return { ok: false, reason: 'not_found', message: 'This application no longer matches a row in your Google Sheet, so nothing was deleted. If you already removed the row, run Sync tracker in Settings to remove it here.' };
+    return { ok: true, sheetId, rowIndex: resolution.rowIndex };
+  } catch {
+    return { ok: false, reason: 'google_error', message: 'Google Sheets could not be reached, so nothing was deleted.' };
+  }
+}
+
+/*
+  Physically removes one row with spreadsheets.batchUpdate + deleteDimension.
+  rowIndex is zero-based and must be a data row (>= 1), never the header.
+  Never throws.
+*/
+export async function deleteSheetRow(options: { token: string; spreadsheetId: string; sheetId: number; rowIndex: number }): Promise<{ ok: true } | SheetFailure> {
+  const { token, spreadsheetId, sheetId, rowIndex } = options;
+  if (!Number.isInteger(rowIndex) || rowIndex < 1) return { ok: false, reason: 'not_found', message: 'Refused to delete the header row.' };
+  try {
+    const response = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(spreadsheetId)}:batchUpdate`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requests: [{ deleteDimension: { range: { sheetId, dimension: 'ROWS', startIndex: rowIndex, endIndex: rowIndex + 1 } } }] }),
+    });
+    if (!response.ok) return { ok: false, reason: 'google_error', message: 'Google could not delete the row from your sheet, so nothing was deleted.', googleStatus: response.status, googleDetail: await googleErrorDetail(response) };
+    return { ok: true };
+  } catch {
+    return { ok: false, reason: 'google_error', message: 'Google Sheets could not be reached, so nothing was deleted.' };
+  }
+}
+
 /*
   Never throws: the app-side stage change is kept even when the
   sheet sync fails, and the reason is reported to the client.
