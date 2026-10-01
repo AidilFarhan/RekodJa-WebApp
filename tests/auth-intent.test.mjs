@@ -14,9 +14,11 @@ for (const scenario of [
   { intent: undefined, registered: true, path: '/sign-in?error=expired', accepted: false },
   { intent: 'login', registered: false, lookupError: true, path: '/sign-in?error=registration', accepted: false },
   { intent: 'signup', registered: false, insertCode: '23505', path: '/sign-in?notice=already-exists', accepted: false },
+  { intent: 'signup', registered: false, profileError: true, path: '/sign-in?error=registration', accepted: false },
 ]) test(`OAuth ${JSON.stringify(scenario)}`, async () => {
   const written = [];
   let inserted = false;
+  let profileRestored = false;
   let revoked = false;
   const jar = { get: () => ({ value: scenario.intent }), delete() {}, getAll: () => [], set: (name) => written.push(name) };
   const mocks = {
@@ -30,6 +32,11 @@ for (const scenario of [
       },
       from: () => ({
         select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: scenario.registered ? { user_id: 'user-1' } : null, error: scenario.lookupError }) }) }),
+        upsert: async (row, options) => {
+          assert.deepEqual([row, options], [{ id: 'user-1' }, { onConflict: 'id', ignoreDuplicates: true }]);
+          profileRestored = true;
+          return { error: scenario.profileError ? { code: '42501' } : null };
+        },
         insert: async () => { inserted = true; return { error: scenario.insertCode ? { code: scenario.insertCode } : null }; },
       }),
     }) },
@@ -39,6 +46,7 @@ for (const scenario of [
   const result = await exports.GET({ nextUrl: new URL('https://example.com/auth/callback?code=verified-code') });
   assert.equal(result, `https://example.com${scenario.path}`);
   assert.equal(written.includes('auth-session'), scenario.accepted);
-  assert.equal(inserted, scenario.intent === 'signup' && !scenario.registered);
+  assert.equal(profileRestored, scenario.intent === 'signup' && !scenario.registered);
+  assert.equal(inserted, scenario.intent === 'signup' && !scenario.registered && !scenario.profileError);
   assert.equal(revoked, Boolean(scenario.intent) && !scenario.accepted);
 });

@@ -40,7 +40,11 @@ export async function GET(request: NextRequest) {
         if (!accepted) destination = '/sign-in?notice=create-first';
       } else if (registration) destination = '/sign-in?notice=already-exists';
       else {
-        const { error: insertError } = await client.from('account_registrations').insert({ user_id: data.user.id });
+        // Deleting an account removes the profile but keeps the Auth user, so
+        // the sign-up trigger never runs again and the registration's foreign
+        // key to profiles would refuse the insert. Restore an empty profile.
+        const { error: profileError } = await client.from('profiles').upsert({ id: data.user.id }, { onConflict: 'id', ignoreDuplicates: true });
+        const { error: insertError } = profileError ? { error: profileError } : await client.from('account_registrations').insert({ user_id: data.user.id });
         accepted = !insertError;
         if (insertError) destination = insertError.code === '23505' ? '/sign-in?notice=already-exists' : '/sign-in?error=registration';
       }
