@@ -55,7 +55,7 @@ async function ensureCustomer(stripe: Stripe, userId: string) {
   }
   if (!row.stripe_customer_id) throw new Error('Billing customer is not ready.');
   const customer = await stripe.customers.retrieve(row.stripe_customer_id);
-  if (customer.deleted || customer.livemode) throw new Error('Invalid billing customer.');
+  if (customer.deleted || customer.livemode !== liveMode(process.env)) throw new Error('Invalid billing customer.');
   return row as BillingCustomer & { stripe_customer_id: string };
 }
 export async function createCheckout(userId: string, plan: PlanKey) {
@@ -104,7 +104,7 @@ export async function createCheckout(userId: string, plan: PlanKey) {
       .eq('user_id', userId).eq('checkout_attempt_id', row.checkout_attempt_id);
     if (error) throw new Error('Could not persist Checkout session.');
   }
-  if (session.livemode || resourceId(session.customer) !== customer.stripe_customer_id) throw new Error('Invalid Checkout owner.');
+  if (session.livemode !== liveMode(process.env) || resourceId(session.customer) !== customer.stripe_customer_id) throw new Error('Invalid Checkout owner.');
   if (session.status === 'expired' || session.status === 'complete') {
     // All subscriptions were checked above; never discard an unknown/open
     // session just because the local lease expired.

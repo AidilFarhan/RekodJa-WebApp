@@ -3,6 +3,7 @@ import type Stripe from 'stripe';
 import { supabaseAdmin } from '../supabase-admin';
 import { verifiedStripe } from '../stripe/server';
 import { eventSubscriptionId, failureWindowStart, resourceId, subscriptionSnapshot } from './stripe-state';
+import { liveMode } from './stripe-objects.mjs';
 
 async function firstFailedAt(stripe: Stripe, sub: Stripe.Subscription): Promise<string> {
   const invoiceId = resourceId(sub.latest_invoice);
@@ -24,7 +25,7 @@ async function firstFailedAt(stripe: Stripe, sub: Stripe.Subscription): Promise<
 }
 
 export async function processBillingEvent(event: Stripe.Event) {
-  if (event.livemode) throw new Error('Live events are not accepted.');
+  if (event.livemode !== liveMode(process.env)) throw new Error('Event mode does not match this environment.');
   const subscriptionId = eventSubscriptionId(event);
   if (!subscriptionId) return 'ignored';
   const stripe = await verifiedStripe();
@@ -43,7 +44,7 @@ export async function processBillingEvent(event: Stripe.Event) {
       .select('stripe_subscription_id,status,past_due_at').eq('user_id', owner.user_id).maybeSingle();
     if (previousError) throw new Error('Could not read subscription state.');
     const current = await stripe.subscriptions.retrieve(subscriptionId);
-    if (current.livemode || resourceId(current.customer) !== customerId) throw new Error('Invalid subscription owner.');
+    if (current.livemode !== liveMode(process.env) || resourceId(current.customer) !== customerId) throw new Error('Invalid subscription owner.');
     if (previous?.stripe_subscription_id && previous.stripe_subscription_id !== current.id) {
       const stored = await stripe.subscriptions.retrieve(previous.stripe_subscription_id);
       if (stored.created >= current.created) return 'superseded';

@@ -82,7 +82,20 @@ export async function authenticatedBillingUser(request: Request) {
   if (error || !user) throw new BillingError(401, 'Sign in before managing billing.');
   return user;
 }
+/** Record why a billing request failed, without any credential in it.
+ *
+ * The response stays generic, but an unexplained 503 cannot be diagnosed from
+ * outside. Stripe partly masks keys in its own messages; anything shaped like a
+ * key or signing secret is still removed before it reaches the log.
+ */
+export function logBillingError(context: string, error: unknown) {
+  const detail = error instanceof Error
+    ? [error.name, (error as { code?: unknown }).code, error.message].filter(Boolean).join(' | ')
+    : String(error);
+  console.error(`${context}: ${detail.replace(/\b(?:sk|rk|pk|whsec)_[A-Za-z0-9_*.]+/g, '[redacted]')}`);
+}
 export function billingFailure(error: unknown) {
+  if (!(error instanceof BillingError) || error.status >= 500) logBillingError('Billing request failed', error);
   return NextResponse.json({ error: error instanceof BillingError ? error.message : 'Billing is temporarily unavailable. Please retry later.' },
     { status: error instanceof BillingError ? error.status : 503, headers: { 'Cache-Control': 'no-store' } });
 }

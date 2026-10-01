@@ -8,7 +8,7 @@ import { getBillingCustomer, cardsConfiguration, resolvePrice } from './checkout
 import { canChangePlan, isTerminalSubscription, PLANS, SANDBOX_PORTAL, type PlanKey } from './plans';
 import { resourceId, subscriptionSnapshot } from './stripe-state';
 import { currentAppUrl } from './test-environment.mjs';
-import { stripeObject } from './stripe-objects.mjs';
+import { liveMode, stripeObject } from './stripe-objects.mjs';
 
 /** The portal configuration for this environment. A configuration created in
  * test mode does not exist in live mode, so a missing live value fails here
@@ -27,7 +27,7 @@ export async function currentSubscription(stripe: Stripe, userId: string) {
   for await (const subscription of stripe.subscriptions.list({ customer: row.stripe_customer_id, status: 'all', limit: 100 })) {
     if (!isTerminalSubscription(subscription.status)) running.push(subscription);
   }
-  if (running.length !== 1 || running[0].livemode || resourceId(running[0].customer) !== row.stripe_customer_id) {
+  if (running.length !== 1 || running[0].livemode !== liveMode(process.env) || resourceId(running[0].customer) !== row.stripe_customer_id) {
     throw new BillingError(409, 'No single manageable subscription was found.');
   }
   subscriptionSnapshot(running[0], userId, null); // validates product, currency, amount and quantity
@@ -43,7 +43,7 @@ export async function createPortal(userId: string) {
   ]);
   // A local server guard cannot intercept writes on Stripe's hosted portal.
   // Therefore the configuration itself must disable subscription updates.
-  if (!config.active || config.livemode || config.features.subscription_update.enabled ||
+  if (!config.active || config.livemode !== liveMode(process.env) || config.features.subscription_update.enabled ||
       config.features.subscription_update.trial_update_behavior !== 'continue_trial' ||
       !config.features.subscription_cancel.enabled || config.features.subscription_cancel.mode !== 'at_period_end' ||
       config.features.subscription_cancel.proration_behavior !== 'none' ||
