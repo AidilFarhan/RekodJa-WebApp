@@ -16,7 +16,7 @@ before(async () => {
     grant select,insert,update,delete on public.gmail_scan_candidates to authenticated;
     create policy own_rows on public.gmail_scan_candidates for all to authenticated using ((select auth.uid())=user_id) with check ((select auth.uid())=user_id);
     insert into public.gmail_scan_candidates values (1,'${alice}','private'),(2,'${bob}','private');`);
-  for (const name of ['20260924132329_stripe_subscriptions.sql', '20260924133124_stripe_billing_transactions.sql', '20260924181902_stripe_checkout_and_gmail_access.sql']) {
+  for (const name of ['20260924132329_stripe_subscriptions.sql', '20260924133124_stripe_billing_transactions.sql', '20260924181902_stripe_checkout_and_gmail_access.sql', '20261001120000_delete_own_gmail_scan_candidates.sql']) {
     await db.exec(await readFile(new URL(`../supabase/migrations/${name}`, import.meta.url), 'utf8'));
   }
   await db.query('insert into public.billing_customers(user_id,stripe_customer_id) values ($1,$2),($3,$4)', [alice,'cus_alice',bob,'cus_bob']);
@@ -81,3 +81,14 @@ test('trial access keeps own Gmail data, blocks other users and ends at the dead
 test('invalid ownership fails atomically without recording a processed event', () => transaction(async () => {
   await assert.rejects(apply('evt_bad',0,snapshot({stripe_customer_id:'cus_bob'})),/ownership mismatch/);
 }));
+test('a free user can delete only their own Gmail candidates through the function', () => transaction(async () => {
+  // A plain DELETE is filtered by the Pro-only policy and removes nothing,
+  // which is why account deletion goes through the function.
+  assert.equal((await db.query('delete from gmail_scan_candidates where user_id = $1', [alice])).affectedRows, 0);
+  await db.query('select public.delete_own_gmail_scan_candidates()');
+  await db.exec('reset role');
+  assert.deepEqual((await db.query('select id from gmail_scan_candidates order by id')).rows, [{ id: 2 }]);
+}, 'authenticated'));
+test('anonymous callers cannot run the Gmail deletion function', () => transaction(async () => {
+  await assert.rejects(db.query('select public.delete_own_gmail_scan_candidates()'), /permission denied/);
+}, 'anon'));
